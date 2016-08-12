@@ -1,9 +1,8 @@
-
 #include <windows.h>
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
-#include "image.cpp"
+#include "image.h"
 
 // TODO: add header file for image.cpp and import it instead. 
 // TODO: add ocr files, put all vision algorithms there
@@ -19,13 +18,14 @@ int main(int argc, char *argv[])
     
     char imagePath[] = "unusedName.bmp";
     
+    BmpImage bmp;
     // TODO: add constructor to image.cpp
     // Takes screenshot and saves it in BMP format. 
-    TakeScreenShot(imagePath, log);
+    bmp.TakeScreenShot(imagePath, log);
     
     // Reads the pixels of the screenshotted BMP image and saves them to pixels. 
     unsigned char* pixels;
-    pixels = readBMP(imagePath, log);
+    pixels = bmp.readBMP(imagePath, log);
     
     // pixels is a pointer that points to first element of the array. e.g Get 2nd element by either pixels[1] or *(pixels + 1), which retrieves the next address.
     log << "RED " <<(int)pixels[0] << "\n";
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     
     // readBMP dynamically allocates memory for the pixels. Need to be deleted after use. TODO: This should be in the image.cpp class.
     delete pixels;
-    
+
     return 0;
 }
 

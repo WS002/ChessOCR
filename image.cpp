@@ -1,11 +1,16 @@
+#include "image.h"
 
-#include <windows.h>
-#include <stdio.h>
-#include <iostream>
-#include <fstream>
+BmpImage::BmpImage()
+{
 
+}
 
-void TakeScreenShot(char* filename, std::ofstream& log)
+BmpImage::~BmpImage()
+{
+
+}
+
+void BmpImage::TakeScreenShot(char* filename, std::ofstream& log)
 {   
   
     keybd_event(VK_SNAPSHOT, 0x45, KEYEVENTF_EXTENDEDKEY, 0);
@@ -32,7 +37,6 @@ void TakeScreenShot(char* filename, std::ofstream& log)
         if((pBuf = malloc(bmpInfo.bmiHeader.biSizeImage))==NULL)
         {
             log << "ERROR: Unable to Allocate Bitmap Memory.\n";  
-            MessageBox( NULL, "Unable to Allocate Bitmap Memory", "Error", MB_OK|MB_ICONERROR);
             break;
         } 
         bmpInfo.bmiHeader.biCompression=BI_RGB;
@@ -40,7 +44,6 @@ void TakeScreenShot(char* filename, std::ofstream& log)
         if((fp = fopen(filename,"wb"))==NULL)
         {            
             log << "ERROR: Unable to Create Bitmap File.\n";
-            MessageBox( NULL, "Unable to Create Bitmap File", "Error", MB_OK|MB_ICONERROR);
             break;
         }         
         
@@ -60,7 +63,7 @@ void TakeScreenShot(char* filename, std::ofstream& log)
 }
 
 
-unsigned char* readBMP(char* filename, std::ofstream& log)
+unsigned char* BmpImage::readBMP(char* filename, std::ofstream& log)
 {
     int i;
     FILE* f = fopen(filename, "rb");

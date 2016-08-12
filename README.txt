@@ -1,4 +1,4 @@
-Compile with g++ [mainFile].cpp -lgdi32
+Compile with g++ main.cpp image.cpp -lgdi32
 
 -lgdi32: Links gdi32 library
 
