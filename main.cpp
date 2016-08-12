@@ -28,10 +28,12 @@ void TakeScreenShot(char* filename, std::ofstream &log)
         ZeroMemory(&bmpInfo,sizeof(BITMAPINFO));
         bmpInfo.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
         GetDIBits(hdc,h,0,0,NULL,&bmpInfo,DIB_RGB_COLORS); 
+        
         if(bmpInfo.bmiHeader.biSizeImage<=0)
             bmpInfo.bmiHeader.biSizeImage=bmpInfo.bmiHeader.biWidth*abs(bmpInfo.bmiHeader.biHeight)*(bmpInfo.bmiHeader.biBitCount+7)/8;
         if((pBuf = malloc(bmpInfo.bmiHeader.biSizeImage))==NULL)
         {
+            log << "ERROR: Unable to Allocate Bitmap Memory.\n";  
             MessageBox( NULL, "Unable to Allocate Bitmap Memory", "Error", MB_OK|MB_ICONERROR);
             break;
         } 
@@ -39,11 +41,11 @@ void TakeScreenShot(char* filename, std::ofstream &log)
         GetDIBits(hdc,h,0,bmpInfo.bmiHeader.biHeight,pBuf, &bmpInfo, DIB_RGB_COLORS);
         if((fp = fopen(filename,"wb"))==NULL)
         {            
-            log << "Unable to Create Bitmap File.\n";
-                       
+            log << "ERROR: Unable to Create Bitmap File.\n";
             MessageBox( NULL, "Unable to Create Bitmap File", "Error", MB_OK|MB_ICONERROR);
             break;
-        } 
+        }         
+        
         bmpFileHeader.bfReserved1=0;
         bmpFileHeader.bfReserved2=0;
         bmpFileHeader.bfSize=sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)+bmpInfo.bmiHeader.biSizeImage;
