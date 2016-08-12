@@ -7,7 +7,7 @@
 
 // TODO: add header file for image.cpp and import it instead. 
 // TODO: add ocr files, put all vision algorithms there
-// TODO: add button, on click to initiate image object, which automatically takes a screenshot, saves it, reads it( all of this image.cpp ) 
+// TODO: add button (main.cpp), on click to initiate image object, take a screenshot(image.cpp), save it(image.cpp), read it(image.cpp ) 
 //       and calls the ocr algorithms.(all of this ocr.cpp)
 
 
@@ -19,10 +19,11 @@ int main(int argc, char *argv[])
     
     char imagePath[] = "unusedName.bmp";
     
-    // Takes screenshot and saves it in BMP format. TODO: This should be replace with an image constructor
+    // TODO: add constructor to image.cpp
+    // Takes screenshot and saves it in BMP format. 
     TakeScreenShot(imagePath, log);
     
-    // Reads the pixels of the screenshotted BMP image and saves them to pixels. TODO: This should be in the image.cpp constructor.
+    // Reads the pixels of the screenshotted BMP image and saves them to pixels. 
     unsigned char* pixels;
     pixels = readBMP(imagePath, log);
     
