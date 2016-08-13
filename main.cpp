@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <iostream>
+#include <conio.h>
 #include <fstream>
 #include "image.h"
 
@@ -16,27 +17,28 @@ int main(int argc, char *argv[])
     std::ofstream log;
     log.open ("log.txt");
     
-    char imagePath[] = "unusedName.bmp";
+    char imagePath[] = "whatever.bmp";
     
-    BmpImage bmp;
+    BmpImage *bmp = new BmpImage();
     // TODO: add constructor to image.cpp
     // Takes screenshot and saves it in BMP format. 
-    bmp.TakeScreenShot(imagePath, log);
+    bmp->TakeScreenShot(log);
+	bmp->saveBMP(imagePath, log);
     
     // Reads the pixels of the screenshotted BMP image and saves them to pixels. 
     unsigned char* pixels;
-    pixels = bmp.readBMP(imagePath, log);
+    //pixels = bmp.readBMP(imagePath, log);
+	pixels = bmp->getPixels();
     
-    // pixels is a pointer that points to first element of the array. e.g Get 2nd element by either pixels[1] or *(pixels + 1), which retrieves the next address.
-    log << "RED " <<(int)pixels[0] << "\n";
-    log << "GREEN " <<(int)pixels[1] << "\n";
-    log << "BLUE " <<(int)pixels[2] << "\n";
-    
+
     log.close();
     
-    // readBMP dynamically allocates memory for the pixels. Need to be deleted after use. TODO: This should be in the image.cpp class.
-    delete pixels;
-
+	/*do 
+	{
+		std::cout << '\n' << "Press a key to continue...";
+	} while (std::cin.get() != '\n');
+	*/
+	delete bmp;
     return 0;
 }
 
