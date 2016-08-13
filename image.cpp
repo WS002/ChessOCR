@@ -15,11 +15,11 @@ void BmpImage::TakeScreenShot(std::ofstream& log)
 {   
     
 	// Simulate print screen
-	keybd_event(VK_MENU, 0, 0, 0); //Alt Press
+	//keybd_event(VK_MENU, 0, 0, 0); //Alt Press
     keybd_event(VK_SNAPSHOT, 0, 0, 0); // Printscreen press
 	
     keybd_event(VK_SNAPSHOT, 0, KEYEVENTF_KEYUP, 0); // Printscreen release
-	keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0); //Alt Release
+	//keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0); //Alt Release
 
 	// Wait for it to be copied to clipboard
 	Sleep(2000);
