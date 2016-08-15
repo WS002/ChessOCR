@@ -3,7 +3,7 @@
 
 BmpImage::BmpImage()
 {
-
+    
 }
 
 BmpImage::~BmpImage()
@@ -11,9 +11,8 @@ BmpImage::~BmpImage()
 	free(pixels);
 }
 
-void BmpImage::TakeScreenShot(std::ofstream& log)
+void BmpImage::TakeScreenShot()
 {   
-    
 	// Simulate print screen
 	//keybd_event(VK_MENU, 0, 0, 0); //Alt Press
     keybd_event(VK_SNAPSHOT, 0, 0, 0); // Printscreen press
@@ -45,13 +44,14 @@ void BmpImage::TakeScreenShot(std::ofstream& log)
 		
         if((pBuf = malloc(bmpInfo.bmiHeader.biSizeImage))==NULL)
         {
-            log << "ERROR: Unable to Allocate Bitmap Memory.\n";  
+            Log::getInstance().debug("ERROR: Unable to Allocate Bitmap Memory.");
             break;
         } 
         bmpInfo.bmiHeader.biCompression=BI_RGB;
         GetDIBits(hdc,h,0,bmpInfo.bmiHeader.biHeight,pBuf, &bmpInfo, DIB_RGB_COLORS);
        
-		log << bmpInfo.bmiHeader.biSizeImage << "\n";
+        Log::getInstance().debug("Image size: ");
+        Log::getInstance().debug(bmpInfo.bmiHeader.biSizeImage);
 	   
 		this->width = bmpInfo.bmiHeader.biWidth;
 		this->height = abs(bmpInfo.bmiHeader.biHeight);
@@ -67,22 +67,24 @@ void BmpImage::TakeScreenShot(std::ofstream& log)
     
 }
 
-void BmpImage::saveBMP(char* filename, std::ofstream& log)
+void BmpImage::saveBMP(char* filename)
 {
 	FILE*fp=NULL;
 	if((fp = fopen(filename,"wb"))==NULL)
-	{            
-		log << "ERROR: Unable to Create Bitmap File.\n";
+	{      
+        Log::getInstance().debug("ERROR: Unable to Create Bitmap File.");
 		return;
 	}
 		
-		
 	// pixels is a pointer that points to first element of the array. e.g Get 2nd element by either pixels[1] or *(pixels + 1), which retrieves the next address.
-    log << "RED " <<(int)this->pixels[0] << "\n";
-    log << "GREEN " <<(int)this->pixels[1] << "\n";
-    log << "BLUE " <<(int)this->pixels[2] << "\n";
-    log << sizeof(this->pixels) << "\n";
-	log << this->size << "\n";
+    Log::getInstance().debug("Pixels RGB: ");
+    Log::getInstance().debug((int)this->pixels[0]);
+    Log::getInstance().debug((int)this->pixels[1]);
+    Log::getInstance().debug((int)this->pixels[2]);
+    
+    Log::getInstance().debug(sizeof(this->pixels));
+    Log::getInstance().debug(this->size);
+
 	
 	this->bmpFileHeader.bfReserved1=0;
 	this->bmpFileHeader.bfReserved2=0;
@@ -97,7 +99,7 @@ void BmpImage::saveBMP(char* filename, std::ofstream& log)
 }
 
 
-unsigned char* BmpImage::readBMP(char* filename, std::ofstream& log)
+unsigned char* BmpImage::readBMP(char* filename)
 {
     int i;
     FILE* f = fopen(filename, "rb");
@@ -108,7 +110,7 @@ unsigned char* BmpImage::readBMP(char* filename, std::ofstream& log)
     int width = *(int*)&info[18];
     int height = *(int*)&info[22];
 
-	this->width = (LONG) width;;
+	this->width = (LONG) width;
 	this->height = (LONG) height;
 	
 	

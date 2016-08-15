@@ -1,8 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
-#include <iostream>
 #include <conio.h>
-#include <fstream>
 #include "image.h"
 
 // TODO: add header file for image.cpp and import it instead. 
@@ -13,26 +11,19 @@
 
 int main(int argc, char *argv[])
 {
-    // Log file
-    std::ofstream log;
-    log.open ("log.txt");
-    
     char imagePath[] = "whatever.bmp";
     
     BmpImage *bmp = new BmpImage();
     // TODO: add constructor to image.cpp
     // Takes screenshot and saves it in BMP format. 
-    bmp->TakeScreenShot(log);
-	bmp->saveBMP(imagePath, log);
+    bmp->TakeScreenShot();
+	bmp->saveBMP(imagePath);
     
     // Reads the pixels of the screenshotted BMP image and saves them to pixels. 
     unsigned char* pixels;
     //pixels = bmp.readBMP(imagePath, log);
 	pixels = bmp->getPixels();
-    
 
-    log.close();
-    
 	/*do 
 	{
 		std::cout << '\n' << "Press a key to continue...";

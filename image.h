@@ -1,7 +1,7 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
-
+#include "log.h"
 #include <windows.h>
 #include <stdio.h>
 #include <iostream>
@@ -21,9 +21,9 @@ BITMAPFILEHEADER bmpFileHeader;
 public:
 	BmpImage();
 	~BmpImage();
-	void TakeScreenShot(std::ofstream& log);
-	unsigned char* readBMP(char* filename, std::ofstream& log);
-	void saveBMP(char* filename, std::ofstream& log);
+	void TakeScreenShot();
+	unsigned char* readBMP(char* filename);
+	void saveBMP(char* filename);
 	
 	//Setter + getter
 	unsigned char* getPixels();
