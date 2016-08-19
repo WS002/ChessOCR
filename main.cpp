@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
     // TODO: add constructor to image.cpp
     // Takes screenshot and saves it in BMP format. 
     bmp->TakeScreenShot();
+    bmp->grayscale();
 	bmp->saveBMP(imagePath);
     
     // Reads the pixels of the screenshotted BMP image and saves them to pixels. 

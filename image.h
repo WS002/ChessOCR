@@ -24,6 +24,7 @@ public:
 	void TakeScreenShot();
 	unsigned char* readBMP(char* filename);
 	void saveBMP(char* filename);
+    void grayscale();
 	
 	//Setter + getter
 	unsigned char* getPixels();

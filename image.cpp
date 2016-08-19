@@ -51,11 +51,10 @@ void BmpImage::TakeScreenShot()
         GetDIBits(hdc,h,0,bmpInfo.bmiHeader.biHeight,pBuf, &bmpInfo, DIB_RGB_COLORS);
        
         Log::getInstance().debug("Image size: ");
-        Log::getInstance().debug(bmpInfo.bmiHeader.biSizeImage);
 	   
 		this->width = bmpInfo.bmiHeader.biWidth;
 		this->height = abs(bmpInfo.bmiHeader.biHeight);
-		this->size 	= bmpInfo.bmiHeader.biSizeImage;
+		this->size 	= bmpInfo.bmiHeader.biWidth * abs(bmpInfo.bmiHeader.biHeight) * 4;
 		this->pixels = (unsigned char*) pBuf;
 		this->bmpInfo = bmpInfo;
 		this->bmpFileHeader = bmpFileHeader;
@@ -82,8 +81,8 @@ void BmpImage::saveBMP(char* filename)
     Log::getInstance().debug((int)this->pixels[1]);
     Log::getInstance().debug((int)this->pixels[2]);
     
-    Log::getInstance().debug(sizeof(this->pixels));
-    Log::getInstance().debug(this->size);
+    Log::getInstance().debug(this->width);
+    Log::getInstance().debug(this->height);
 
 	
 	this->bmpFileHeader.bfReserved1=0;
@@ -96,6 +95,30 @@ void BmpImage::saveBMP(char* filename)
 	fwrite((LPVOID)this->pixels,this->bmpInfo.bmiHeader.biSizeImage,1,fp); 
 
 	if(fp)fclose(fp);
+}
+
+void BmpImage::grayscale()
+{
+    for(int i = 3; i < this->size; i+=4)
+    {
+        //Red i - 3
+        //Green i - 2
+        //Blue i - 1
+        //Reserved(alpha) i
+        
+        double red =( (double) this->pixels[i-3] )/ 255.0f;
+        double green =( (double) this->pixels[i-2])/ 255.0f; 
+        double blue =( (double) this->pixels[i-1] )/ 255.0f;
+        
+        double grayColor = 0.2126f * red + 0.7152f * green + 0.0722f * blue;
+        double scaledGray = 255.0f * grayColor;
+        
+        this->pixels[i-3] = (unsigned char) scaledGray;
+        this->pixels[i-2] = (unsigned char) scaledGray;
+        this->pixels[i-1] = (unsigned char) scaledGray;
+        this->pixels[i] =  (unsigned char) 0;
+                
+    }
 }
 
 
