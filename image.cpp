@@ -97,7 +97,7 @@ void BmpImage::saveBMP(char* filename)
 	if(fp)fclose(fp);
 }
 
-void BmpImage::grayscale()
+void BmpImage::grayscale(bool binarize)
 {
     for(int i = 3; i < this->size; i+=4)
     {
@@ -111,6 +111,13 @@ void BmpImage::grayscale()
         double blue =( (double) this->pixels[i-1] )/ 255.0f;
         
         double grayColor = 0.2126f * red + 0.7152f * green + 0.0722f * blue;
+                
+        if(binarize) 
+            if(grayColor > 0.5f)
+                grayColor = 1.0f;
+            else grayColor = 0.0f;
+        
+        
         double scaledGray = 255.0f * grayColor;
         
         this->pixels[i-3] = (unsigned char) scaledGray;
@@ -120,6 +127,8 @@ void BmpImage::grayscale()
                 
     }
 }
+
+
 
 
 unsigned char* BmpImage::readBMP(char* filename)
