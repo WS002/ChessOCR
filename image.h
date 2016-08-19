@@ -22,7 +22,7 @@ public:
 	BmpImage();
 	~BmpImage();
 	void TakeScreenShot();
-	unsigned char* readBMP(char* filename);
+	//unsigned char* readBMP(char* filename);
 	void saveBMP(char* filename);
     void grayscale(bool binarize = false);
 	

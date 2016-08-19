@@ -130,7 +130,7 @@ void BmpImage::grayscale(bool binarize)
 
 
 
-
+/*
 unsigned char* BmpImage::readBMP(char* filename)
 {
     int i;
@@ -161,6 +161,7 @@ unsigned char* BmpImage::readBMP(char* filename)
 
     return data;
 }
+*/
 
 // Setter and Getters
 unsigned char* BmpImage::getPixels() 
