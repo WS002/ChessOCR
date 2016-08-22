@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <conio.h>
-#include "image.h"
+#include "ocr.h"
 
 // TODO: add header file for image.cpp and import it instead. 
 // TODO: add ocr files, put all vision algorithms there
@@ -13,24 +13,24 @@ int main(int argc, char *argv[])
 {
     char imagePath[] = "whatever.bmp";
     
-    BmpImage *bmp = new BmpImage();
+    OCR *ocr = new OCR();
     // TODO: add constructor to image.cpp
     // Takes screenshot and saves it in BMP format. 
-    bmp->TakeScreenShot();
-    bmp->grayscale(true);
-	bmp->saveBMP(imagePath);
-    
+    ocr->TakeScreenShot();
+    ocr->grayscale(true);
+	ocr->saveBMP(imagePath);
+    ocr->computeHorizontalDerivatives();
     // Reads the pixels of the screenshotted BMP image and saves them to pixels. 
     unsigned char* pixels;
     //pixels = bmp.readBMP(imagePath, log);
-	pixels = bmp->getPixels();
+	pixels = ocr->getPixels();
 
 	/*do 
 	{
 		std::cout << '\n' << "Press a key to continue...";
 	} while (std::cin.get() != '\n');
 	*/
-	delete bmp;
+	delete ocr;
     return 0;
 }
 

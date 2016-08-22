@@ -9,7 +9,7 @@
 
 class BmpImage
 {
-private:
+protected:
 
 LONG width;
 LONG height;
