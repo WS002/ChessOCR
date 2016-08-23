@@ -23,22 +23,24 @@ void OCR::cornerDetection()
     this->blur();
 
  // grayscale the image ( binarize = true?)
-    this->grayscale();
+    this->grayscale(1);
     
     
     
  // compute horizontal derivatives image
     char horizontalImagePath[] = "whateverHorizontal.bmp";
     this->computeHorizontalDerivatives();
+	this->blur(horizontalDerivatives);
     this->saveHorizontalBMP(horizontalImagePath);
     
 // compute vertical derivatives image
     char verticalImagePath[] = "whateverVertical.bmp";
     this->computeVerticalDerivatives();
+	this->blur(verticalDerivatives);
     this->saveVerticalBMP(verticalImagePath);
     
     double maxScore = 0.0f;
-    double threshold = 450000000.0f;
+    double threshold = 20000000.0f;
     
 // define gaussian kernel and the structure tensor matrix    
     for(int i = 3; i < this->size; i += 4)
@@ -334,3 +336,5 @@ void OCR::saveVerticalBMP(char* filename)
 
 	if(fp)fclose(fp);
 }
+
+

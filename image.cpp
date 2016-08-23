@@ -222,6 +222,99 @@ void BmpImage::blur()
     }
 }
 
+// Gaussian blur
+void BmpImage::blur(unsigned char* image)
+{
+     // Apply the gaussian kernel 3x3
+    for(int i = 3; i < this->size; i += 4)
+    {        
+        //Ignore border pixels
+        if(!( i < this->width * 4) && !(i > this->size - (this->width * 4)) 
+        &&  !(i % (4*this->width) == 3) && !((i+1) % (4*this->width) == 0) )
+        {
+            // current pixels       i
+            // left pixel           i - 4
+            // right pixel          i + 4
+            // top pixel            i + (width*4)
+            // top left pixel       top pixel - 4
+            // top right pixels     top pixel + 4
+            // bottom pixel         i - (width*4)
+            // bottom left pixel    bottom pixel - 4
+            // bottom right pixel   bottom pixel + 4
+            
+            // Blue
+            int currentB = i - 1;
+            int leftB = i - 5;
+            int rightB = i + 5;
+            int topB = i + (this->width * 4) - 1;
+            int topLeftB = topB - 4;
+            int topRightB = topB + 4;
+            int bottomB = i - (this->width * 4) - 1;
+            int bottomLeftB = bottomB - 4;
+            int bottomRightB = bottomB + 4;
+            
+            // Green
+            int currentG = i - 2;
+            int leftG = leftB - 1;
+            int rightG = rightB - 1;
+            int topG = topB - 1;
+            int topLeftG = topLeftB - 1;
+            int topRightG = topRightB - 1;
+            int bottomG = bottomB - 1;
+            int bottomLeftG = bottomLeftB - 1;
+            int bottomRightG = bottomRightB - 1;
+            
+            // Red
+            int currentR = i - 3;
+            int leftR = leftG - 1;
+            int rightR = rightG - 1;
+            int topR = topG - 1;
+            int topLeftR = topLeftG - 1;
+            int topRightR = topRightG - 1;
+            int bottomR = bottomG - 1;
+            int bottomLeftR = bottomLeftG - 1;
+            int bottomRightR = bottomRightG - 1;
+            
+            //R
+            double redValue = (double)image[currentR] * 0.25f 
+                            + (double)image[leftR] * 0.125f
+                            + (double)image[rightR] * 0.125f
+                            + (double)image[topR] * 0.125f
+                            + (double)image[bottomR] * 0.125f
+                            + (double)image[topLeftR] * 0.0625f
+                            + (double)image[topRightR] * 0.0625f
+                            + (double)image[bottomLeftR] * 0.0625f
+                            + (double)image[bottomRightR] * 0.0625f;
+            
+            image[i-3] = (unsigned char) redValue;
+            //G
+            double greenValue =   (double)image[currentG] * 0.25f 
+                                + (double)image[leftG] * 0.125f
+                                + (double)image[rightG] * 0.125f
+                                + (double)image[topG] * 0.125f
+                                + (double)image[bottomG] * 0.125f
+                                + (double)image[topLeftG] * 0.0625f
+                                + (double)image[topRightG] * 0.0625f
+                                + (double)image[bottomLeftG] * 0.0625f
+                                + (double)image[bottomRightG] * 0.0625f;
+            image[i-2] = (unsigned char) greenValue;
+            //B
+            double blueValue = (double)image[currentB] * 0.25f 
+                             + (double)image[leftB] * 0.125f
+                             + (double)image[rightB] * 0.125f
+                             + (double)image[topB] * 0.125f
+                             + (double)image[bottomB] * 0.125f
+                             + (double)image[topLeftB] * 0.0625f
+                             + (double)image[topRightB] * 0.0625f
+                             + (double)image[bottomLeftB] * 0.0625f
+                             + (double)image[bottomRightB] * 0.0625f;
+            image[i-1] = (unsigned char) blueValue;
+            //alpha
+            image[i] =(unsigned char) 0.0f;
+        }
+    }
+}
+
 /*
 unsigned char* BmpImage::readBMP(char* filename)
 {

@@ -18,6 +18,9 @@ unsigned char *pixels;
 BITMAPINFO bmpInfo;
 BITMAPFILEHEADER bmpFileHeader;
 
+// Blur function for the derivatives
+void blur(unsigned char* image);
+
 public:
 	BmpImage();
 	~BmpImage();
