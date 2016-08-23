@@ -17,13 +17,26 @@ OCR::~OCR()
 
 void OCR::cornerDetection()
 {
-    // Harris corner detection
+ // Harris corner detection
+ 
+ // optional: Gaussian blur the image
+    this->blur();
+
+ // grayscale the image ( binarize = true?)
+    this->grayscale();
     
-    // optional: Gaussian blur the image
     
-    // compute horizontal derivatives image
-    // compute vertical derivatives image
     
+ // compute horizontal derivatives image
+    char horizontalImagePath[] = "whateverHorizontal.bmp";
+    this->computeHorizontalDerivatives();
+    this->saveHorizontalBMP(horizontalImagePath);
+    
+// compute vertical derivatives image
+    char verticalImagePath[] = "whateverVertical.bmp";
+    this->computeVerticalDerivatives();
+    this->saveVerticalBMP(verticalImagePath);
+
     // define gaussian kernel and the structure tensor matrix
     
     // Compute the score det(H) - k*(Trace(H))^2 and a certain threshold

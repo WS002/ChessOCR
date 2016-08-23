@@ -12,20 +12,14 @@
 int main(int argc, char *argv[])
 {
     char imagePath[] = "whatever.bmp";
-    char horizontalImagePath[] = "whateverHorizontal.bmp";
-    char verticalImagePath[] = "whateverVertical.bmp";
     
     OCR *ocr = new OCR();
     // TODO: add constructor to image.cpp
     // Takes screenshot and saves it in BMP format. 
-    ocr->TakeScreenShot();    
-    ocr->blur();
-    ocr->grayscale();
-	ocr->saveBMP(imagePath);
-    ocr->computeHorizontalDerivatives();
-    ocr->saveHorizontalBMP(horizontalImagePath);
-    ocr->computeVerticalDerivatives();
-    ocr->saveVerticalBMP(verticalImagePath);
+    ocr->TakeScreenShot();        
+    ocr->cornerDetection();
+    ocr->saveBMP(imagePath);
+   
     
 	delete ocr;
     return 0;
