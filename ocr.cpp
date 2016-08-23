@@ -36,10 +36,92 @@ void OCR::cornerDetection()
     char verticalImagePath[] = "whateverVertical.bmp";
     this->computeVerticalDerivatives();
     this->saveVerticalBMP(verticalImagePath);
-
-    // define gaussian kernel and the structure tensor matrix
     
-    // Compute the score det(H) - k*(Trace(H))^2 and a certain threshold
+    double maxScore = 0.0f;
+// define gaussian kernel and the structure tensor matrix
+    // Apply the gaussian kernel 3x3
+    for(int i = 3; i < this->size; i += 4)
+    {        
+        //Ignore border pixels
+        if(!( i < this->width * 4) && !(i > this->size - (this->width * 4)) 
+        &&  !(i % (4*this->width) == 3) && !((i+1) % (4*this->width) == 0) )
+        {
+            double tensorMatrix[2][2];
+            // All channels have same intensities for the current pixel
+            int current = i - 1;
+            int left = i - 5;
+            int right = i + 5;
+            int top = i + (this->width * 4) - 1;
+            int topLeft = top - 4;
+            int topRight = top + 4;
+            int bottom = i - (this->width * 4) - 1;
+            int bottomLeft = bottom - 4;
+            int bottomRight = bottom + 4;
+            
+            //tensorMatrix[0][0] Ix * Iy
+            //tensorMatrix[0][1] Iy * Iy
+            //tensorMatrix[1][0] Ix * Ix
+            //tensorMatrix[1][1] Iy * Iy
+            
+           double xDiff = (double)this->horizontalDerivatives[current] * (double)this->horizontalDerivatives[current] * 0.25f 
+                        + (double)this->horizontalDerivatives[left] *(double)this->horizontalDerivatives[left] * 0.125f
+                        + (double)this->horizontalDerivatives[right] * (double)this->horizontalDerivatives[right] * 0.125f
+                        + (double)this->horizontalDerivatives[top] * (double)this->horizontalDerivatives[top] * 0.125f
+                        + (double)this->horizontalDerivatives[bottom] * (double)this->horizontalDerivatives[bottom] * 0.125f
+                        + (double)this->horizontalDerivatives[topLeft] * (double)this->horizontalDerivatives[topLeft] * 0.0625f
+                        + (double)this->horizontalDerivatives[topRight] * (double)this->horizontalDerivatives[topRight] * 0.0625f
+                        + (double)this->horizontalDerivatives[bottomLeft] * (double)this->horizontalDerivatives[bottomLeft] * 0.0625f
+                        + (double)this->horizontalDerivatives[bottomRight] * (double)this->horizontalDerivatives[bottomRight] * 0.0625f;
+                        
+           double yDiff = (double)this->verticalDerivatives[current] * (double)this->verticalDerivatives[current] * 0.25f 
+                        + (double)this->verticalDerivatives[left] *(double)this->verticalDerivatives[left] * 0.125f
+                        + (double)this->verticalDerivatives[right] * (double)this->verticalDerivatives[right] * 0.125f
+                        + (double)this->verticalDerivatives[top] * (double)this->verticalDerivatives[top] * 0.125f
+                        + (double)this->verticalDerivatives[bottom] * (double)this->verticalDerivatives[bottom] * 0.125f
+                        + (double)this->verticalDerivatives[topLeft] * (double)this->verticalDerivatives[topLeft] * 0.0625f
+                        + (double)this->verticalDerivatives[topRight] * (double)this->verticalDerivatives[topRight] * 0.0625f
+                        + (double)this->verticalDerivatives[bottomLeft] * (double)this->verticalDerivatives[bottomLeft] * 0.0625f
+                        + (double)this->verticalDerivatives[bottomRight] * (double)this->verticalDerivatives[bottomRight] * 0.0625f;
+                        
+          double xyDiff = (double)this->verticalDerivatives[current] * (double)this->horizontalDerivatives[current] * 0.25f 
+                        + (double)this->verticalDerivatives[left] *(double)this->horizontalDerivatives[left] * 0.125f
+                        + (double)this->verticalDerivatives[right] * (double)this->horizontalDerivatives[right] * 0.125f
+                        + (double)this->verticalDerivatives[top] * (double)this->horizontalDerivatives[top] * 0.125f
+                        + (double)this->verticalDerivatives[bottom] * (double)this->horizontalDerivatives[bottom] * 0.125f
+                        + (double)this->verticalDerivatives[topLeft] * (double)this->horizontalDerivatives[topLeft] * 0.0625f
+                        + (double)this->verticalDerivatives[topRight] * (double)this->horizontalDerivatives[topRight] * 0.0625f
+                        + (double)this->verticalDerivatives[bottomLeft] * (double)this->horizontalDerivatives[bottomLeft] * 0.0625f
+                        + (double)this->verticalDerivatives[bottomRight] * (double)this->horizontalDerivatives[bottomRight] * 0.0625f;
+           
+// Compute the score det(H) - k*(Trace(H))^2 and a certain threshold
+            tensorMatrix[0][0] = xyDiff;
+            tensorMatrix[0][1] = yDiff;
+            tensorMatrix[1][0] = xDiff;
+            tensorMatrix[1][1] = xyDiff;
+            
+            double trace = tensorMatrix[1][0] + tensorMatrix[0][1];
+            double det = (tensorMatrix[1][0] * tensorMatrix[0][1]) - (tensorMatrix[0][0] * tensorMatrix[1][1]);
+            
+            double k = 0.04f;
+            double score = det - (k*trace*trace);
+            if(score > maxScore)
+                maxScore = score;
+            if(score > 600000000.0f)
+            {
+                this->pixels[i-3] = (unsigned char) 0.0f;
+                this->pixels[i-2] = (unsigned char) 0.0f;
+                this->pixels[i-1] = (unsigned char) 0.0f;            
+            }
+            else
+            {
+                this->pixels[i-3] = (unsigned char) 255.0f;
+                this->pixels[i-2] = (unsigned char) 255.0f;
+                this->pixels[i-1] = (unsigned char) 255.0f;   
+            }
+                      
+        }
+    }
+        Log::getInstance().debug(maxScore);
 }
 
 void OCR::computeHorizontalDerivatives()
