@@ -6,8 +6,8 @@
 class OCR: public BmpImage
 {
 private:
-    double *horizontalDerivatives;
-    double *verticalDerivatives;
+    unsigned char *horizontalDerivatives;
+    unsigned char *verticalDerivatives;
     
 public:
     OCR():BmpImage()
@@ -19,7 +19,9 @@ public:
     void cornerDetection();
     
     void computeHorizontalDerivatives();
+    void saveHorizontalBMP(char* filename);
     void computeVerticalDerivatives();
+    void saveVerticalBMP(char* filename);
 };
 
 #endif

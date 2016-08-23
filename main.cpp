@@ -12,24 +12,20 @@
 int main(int argc, char *argv[])
 {
     char imagePath[] = "whatever.bmp";
+    char horizontalImagePath[] = "whateverHorizontal.bmp";
+    char verticalImagePath[] = "whateverVertical.bmp";
     
     OCR *ocr = new OCR();
     // TODO: add constructor to image.cpp
     // Takes screenshot and saves it in BMP format. 
     ocr->TakeScreenShot();
-    ocr->grayscale(true);
+    ocr->grayscale();
 	ocr->saveBMP(imagePath);
     ocr->computeHorizontalDerivatives();
-    // Reads the pixels of the screenshotted BMP image and saves them to pixels. 
-    unsigned char* pixels;
-    //pixels = bmp.readBMP(imagePath, log);
-	pixels = ocr->getPixels();
-
-	/*do 
-	{
-		std::cout << '\n' << "Press a key to continue...";
-	} while (std::cin.get() != '\n');
-	*/
+    ocr->saveHorizontalBMP(horizontalImagePath);
+    ocr->computeVerticalDerivatives();
+    ocr->saveVerticalBMP(verticalImagePath);
+    
 	delete ocr;
     return 0;
 }

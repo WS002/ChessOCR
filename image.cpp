@@ -97,6 +97,7 @@ void BmpImage::saveBMP(char* filename)
 	if(fp)fclose(fp);
 }
 
+
 void BmpImage::grayscale(bool binarize)
 {
     for(int i = 3; i < this->size; i+=4)

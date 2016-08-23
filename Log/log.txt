@@ -1,7 +1,7 @@
 Image size: 
 Pixels RGB: 
-0
-0
-0
+102
+102
+102
 3360
 1050
