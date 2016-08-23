@@ -25,6 +25,7 @@ public:
 	//unsigned char* readBMP(char* filename);
 	void saveBMP(char* filename);
     void grayscale(bool binarize = false);
+    void blur();
 	
 	//Setter + getter
 	unsigned char* getPixels();

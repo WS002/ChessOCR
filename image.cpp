@@ -129,7 +129,98 @@ void BmpImage::grayscale(bool binarize)
     }
 }
 
-
+// Gaussian blur
+void BmpImage::blur()
+{
+     // Apply the gaussian kernel 3x3
+    for(int i = 3; i < this->size; i += 4)
+    {        
+        //Ignore border pixels
+        if(!( i < this->width * 4) && !(i > this->size - (this->width * 4)) 
+        &&  !(i % (4*this->width) == 3) && !((i+1) % (4*this->width) == 0) )
+        {
+            // current pixels       i
+            // left pixel           i - 4
+            // right pixel          i + 4
+            // top pixel            i + (width*4)
+            // top left pixel       top pixel - 4
+            // top right pixels     top pixel + 4
+            // bottom pixel         i - (width*4)
+            // bottom left pixel    bottom pixel - 4
+            // bottom right pixel   bottom pixel + 4
+            
+            // Blue
+            int currentB = i - 1;
+            int leftB = i - 5;
+            int rightB = i + 5;
+            int topB = i + (this->width * 4) - 1;
+            int topLeftB = topB - 4;
+            int topRightB = topB + 4;
+            int bottomB = i - (this->width * 4) - 1;
+            int bottomLeftB = bottomB - 4;
+            int bottomRightB = bottomB + 4;
+            
+            // Green
+            int currentG = i - 2;
+            int leftG = leftB - 1;
+            int rightG = rightB - 1;
+            int topG = topB - 1;
+            int topLeftG = topLeftB - 1;
+            int topRightG = topRightB - 1;
+            int bottomG = bottomB - 1;
+            int bottomLeftG = bottomLeftB - 1;
+            int bottomRightG = bottomRightB - 1;
+            
+            // Red
+            int currentR = i - 3;
+            int leftR = leftG - 1;
+            int rightR = rightG - 1;
+            int topR = topG - 1;
+            int topLeftR = topLeftG - 1;
+            int topRightR = topRightG - 1;
+            int bottomR = bottomG - 1;
+            int bottomLeftR = bottomLeftG - 1;
+            int bottomRightR = bottomRightG - 1;
+            
+            //R
+            double redValue = (double)this->pixels[currentR] * 0.25f 
+                            + (double)this->pixels[leftR] * 0.125f
+                            + (double)this->pixels[rightR] * 0.125f
+                            + (double)this->pixels[topR] * 0.125f
+                            + (double)this->pixels[bottomR] * 0.125f
+                            + (double)this->pixels[topLeftR] * 0.0625f
+                            + (double)this->pixels[topRightR] * 0.0625f
+                            + (double)this->pixels[bottomLeftR] * 0.0625f
+                            + (double)this->pixels[bottomRightR] * 0.0625f;
+            
+            this->pixels[i-3] = (unsigned char) redValue;
+            //G
+            double greenValue =   (double)this->pixels[currentG] * 0.25f 
+                                + (double)this->pixels[leftG] * 0.125f
+                                + (double)this->pixels[rightG] * 0.125f
+                                + (double)this->pixels[topG] * 0.125f
+                                + (double)this->pixels[bottomG] * 0.125f
+                                + (double)this->pixels[topLeftG] * 0.0625f
+                                + (double)this->pixels[topRightG] * 0.0625f
+                                + (double)this->pixels[bottomLeftG] * 0.0625f
+                                + (double)this->pixels[bottomRightG] * 0.0625f;
+            this->pixels[i-2] = (unsigned char) greenValue;
+            //B
+            double blueValue = (double)this->pixels[currentB] * 0.25f 
+                             + (double)this->pixels[leftB] * 0.125f
+                             + (double)this->pixels[rightB] * 0.125f
+                             + (double)this->pixels[topB] * 0.125f
+                             + (double)this->pixels[bottomB] * 0.125f
+                             + (double)this->pixels[topLeftB] * 0.0625f
+                             + (double)this->pixels[topRightB] * 0.0625f
+                             + (double)this->pixels[bottomLeftB] * 0.0625f
+                             + (double)this->pixels[bottomRightB] * 0.0625f;
+            this->pixels[i-1] = (unsigned char) blueValue;
+            //alpha
+            this->pixels[i] =(unsigned char) 0.0f;
+        }
+    }
+}
 
 /*
 unsigned char* BmpImage::readBMP(char* filename)

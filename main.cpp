@@ -18,7 +18,8 @@ int main(int argc, char *argv[])
     OCR *ocr = new OCR();
     // TODO: add constructor to image.cpp
     // Takes screenshot and saves it in BMP format. 
-    ocr->TakeScreenShot();
+    ocr->TakeScreenShot();    
+    ocr->blur();
     ocr->grayscale();
 	ocr->saveBMP(imagePath);
     ocr->computeHorizontalDerivatives();
