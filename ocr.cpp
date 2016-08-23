@@ -38,8 +38,9 @@ void OCR::cornerDetection()
     this->saveVerticalBMP(verticalImagePath);
     
     double maxScore = 0.0f;
-// define gaussian kernel and the structure tensor matrix
-    // Apply the gaussian kernel 3x3
+    double threshold = 450000000.0f;
+    
+// define gaussian kernel and the structure tensor matrix    
     for(int i = 3; i < this->size; i += 4)
     {        
         //Ignore border pixels
@@ -106,7 +107,7 @@ void OCR::cornerDetection()
             double score = det - (k*trace*trace);
             if(score > maxScore)
                 maxScore = score;
-            if(score > 600000000.0f)
+            if(score > threshold)
             {
                 this->pixels[i-3] = (unsigned char) 0.0f;
                 this->pixels[i-2] = (unsigned char) 0.0f;
