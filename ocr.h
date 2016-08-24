@@ -2,6 +2,7 @@
 #define OCR_H
 
 #include "image.h"
+#include <vector>
 
 class OCR: public BmpImage
 {
@@ -9,6 +10,15 @@ private:
     unsigned char *horizontalDerivatives;
     unsigned char *verticalDerivatives;
     
+    // Vector with pairs: <index, score> of a corner
+    std::vector<std::pair<int, double> > corners;
+    
+    void filterCorners(int N);
+    void sortCorners();
+    void displayCorners();
+
+    void sort(std::vector<std::pair<int, double> > &v1);
+    void merge(std::vector<std::pair<int, double> > &source, std::vector<std::pair<int, double> > &v1, std::vector<std::pair<int, double> > &v2);
 public:
     OCR():BmpImage()
     {

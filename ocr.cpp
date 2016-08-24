@@ -40,7 +40,7 @@ void OCR::cornerDetection()
     this->saveVerticalBMP(verticalImagePath);
     
     double maxScore = 0.0f;
-    double threshold = 20000000.0f;
+    int threshold = 1000;
     
 // define gaussian kernel and the structure tensor matrix    
     for(int i = 3; i < this->size; i += 4)
@@ -107,25 +107,108 @@ void OCR::cornerDetection()
             
             double k = 0.04f;
             double score = det - (k*trace*trace);
+            if(score > 0.0f)
+            {               
+                this->corners.push_back(std::make_pair(i, score));
+            }
+                
+                
             if(score > maxScore)
-                maxScore = score;
-            if(score > threshold)
-            {
-                this->pixels[i-3] = (unsigned char) 0.0f;
-                this->pixels[i-2] = (unsigned char) 0.0f;
-                this->pixels[i-1] = (unsigned char) 0.0f;            
-            }
-            else
-            {
-                this->pixels[i-3] = (unsigned char) 255.0f;
-                this->pixels[i-2] = (unsigned char) 255.0f;
-                this->pixels[i-1] = (unsigned char) 255.0f;   
-            }
+                maxScore = score;      
                       
         }
     }
-        Log::getInstance().debug(maxScore);
+    
+    this->filterCorners(threshold);
+    this->displayCorners();
+    Log::getInstance().debug(maxScore);
 }
+
+void OCR::displayCorners()
+{
+    //Set all pixels to white
+    for(int i = 3; i < this->size; i += 4)
+    {
+        this->pixels[i-3] = (unsigned char) 255.0f;
+        this->pixels[i-2] = (unsigned char) 255.0f;
+        this->pixels[i-1] = (unsigned char) 255.0f;
+    }
+    
+    for(int j = 0; j < this->corners.size(); ++j)
+    {
+        //B
+        this->pixels[this->corners[j].first - 1] = 0.0f;
+        //G
+        this->pixels[this->corners[j].first - 2] = 0.0f;
+        //R
+        this->pixels[this->corners[j].first - 3] = 0.0f;
+    }
+}
+
+void OCR::filterCorners(int N)
+{  
+
+    this->sortCorners();    
+    this->corners.erase(this->corners.begin(), this->corners.end() - N);
+    
+}
+
+void OCR::sortCorners()
+{     
+    this->sort(this->corners); 
+}
+
+// Merge sort
+void OCR::sort(std::vector<std::pair<int, double> > &source)
+{
+    if(source.size() < 2)
+        return;
+    
+    std::size_t const half_size = source.size() / 2;
+    std::vector<std::pair<int, double> > split_lo(source.begin(), source.begin() + half_size);
+    std::vector<std::pair<int, double> > split_hi(source.begin() + half_size, source.end());  
+   
+    //Sort left
+    this->sort(split_lo);
+    //Sort right
+    this->sort(split_hi);
+    //Merge left and right
+    this->merge(source, split_lo, split_hi);
+}
+
+void OCR::merge(std::vector<std::pair<int, double> > &source, std::vector<std::pair<int, double> > &v1, std::vector<std::pair<int, double> > &v2)
+{
+    // indices of v1 and v2
+    unsigned int x = 0;
+    unsigned int y = 0;
+    
+    for(int i = 0; i < source.size(); ++i)
+    {
+        if( v1.size() == x)
+        {
+            source[i] = v2[y];
+            y++;
+            continue;
+        }
+        
+        if( v2.size() == y)
+        {
+            source[i] = v1[x];
+            x++;
+            continue;
+        }
+                    
+        if(v1[x].second < v2[y].second)
+        {
+            source[i] = v1[x];
+            x++;
+        }else{
+            source[i] = v2[y];
+            y++;
+        }
+    }
+}
+
 
 void OCR::computeHorizontalDerivatives()
 {
