@@ -21,7 +21,7 @@ void BmpImage::TakeScreenShot()
 	//keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0); //Alt Release
 
 	// Wait for it to be copied to clipboard
-	Sleep(2000);
+	Sleep(1000);
 	
     HBITMAP h;
     

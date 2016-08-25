@@ -149,11 +149,11 @@ void OCR::displayCorners()
 {        
     for(int j = 0; j < this->corners.size(); ++j)
     {
-        //B
-        this->pixels[this->corners[j].first - 1] = (unsigned char) 0.0f;
+        //R
+        this->pixels[this->corners[j].first - 1] = (unsigned char) 255.0f;
         //G
         this->pixels[this->corners[j].first - 2] = (unsigned char) 0.0f;
-        //R
+        //B
         this->pixels[this->corners[j].first - 3] = (unsigned char) 0.0f;
     }
 }
@@ -162,21 +162,37 @@ void OCR::displayEdges()
 {        
     for(int j = 0; j < this->edges.size(); ++j)
     {
-        //B
+        //R
         this->pixels[this->edges[j].first - 1] = (unsigned char) 0.0f;
         //G
         this->pixels[this->edges[j].first - 2] = (unsigned char) 0.0f;
-        //R
+        //B
         this->pixels[this->edges[j].first - 3] = (unsigned char) 0.0f;
     }
 }
 
 void OCR::filterCorners(int N)
 {  
-
+    //Global maxima
     this->sortCorners();    
     this->corners.erase(this->corners.begin(), this->corners.end() - N);
-    
+    /*    
+    //Local maxima
+    for(int i = 0; i < corners.size(); ++i)
+    {
+        int currentIndex = corners[i].first;
+        double currentScore = corners[i].second;
+        
+        int left = currentIndex - 4;
+        int right = currentIndex + 4;
+        int top = currentIndex + (this->width * 4);
+        int topLeft = top - 4;
+        int topRight = top + 4;
+        int bottom = currentIndex - (this->width * 4);
+        int bottomLeft = bottom - 4;
+        int bottomRight = bottom + 4;
+    }
+    */
 }
 
 void OCR::sortCorners()
