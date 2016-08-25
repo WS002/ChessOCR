@@ -40,7 +40,8 @@ void OCR::cornerDetection()
     this->saveVerticalBMP(verticalImagePath);
     
     double maxScore = 0.0f;
-    int threshold = 1000;
+    int cornerThreshold = 1000;
+    int edgeThreshold = 100000;
     
 // define gaussian kernel and the structure tensor matrix    
     for(int i = 3; i < this->size; i += 4)
@@ -110,6 +111,9 @@ void OCR::cornerDetection()
             if(score > 0.0f )
             {               
                 this->corners.push_back(std::make_pair(i, score));
+            }else if(score < -1000000.0f) 
+            {
+                this->edges.push_back(std::make_pair(i, score));
             }
                 
                 
@@ -119,12 +123,18 @@ void OCR::cornerDetection()
         }
     }
     
-    this->filterCorners(threshold);
+    this->whitenImage();
+    
+    this->filterCorners(cornerThreshold);
     this->displayCorners();
+    
+    this->filterEdges(edgeThreshold);
+    this->displayEdges();
+    
     Log::getInstance().debug(maxScore);
 }
 
-void OCR::displayCorners()
+void OCR::whitenImage()
 {
     //Set all pixels to white
     for(int i = 3; i < this->size; i += 4)
@@ -133,15 +143,31 @@ void OCR::displayCorners()
         this->pixels[i-2] = (unsigned char) 255.0f;
         this->pixels[i-1] = (unsigned char) 255.0f;
     }
-    
+}
+
+void OCR::displayCorners()
+{        
     for(int j = 0; j < this->corners.size(); ++j)
     {
         //B
-        this->pixels[this->corners[j].first - 1] = 0.0f;
+        this->pixels[this->corners[j].first - 1] = (unsigned char) 0.0f;
         //G
-        this->pixels[this->corners[j].first - 2] = 0.0f;
+        this->pixels[this->corners[j].first - 2] = (unsigned char) 0.0f;
         //R
-        this->pixels[this->corners[j].first - 3] = 0.0f;
+        this->pixels[this->corners[j].first - 3] = (unsigned char) 0.0f;
+    }
+}
+
+void OCR::displayEdges()
+{        
+    for(int j = 0; j < this->edges.size(); ++j)
+    {
+        //B
+        this->pixels[this->edges[j].first - 1] = (unsigned char) 0.0f;
+        //G
+        this->pixels[this->edges[j].first - 2] = (unsigned char) 0.0f;
+        //R
+        this->pixels[this->edges[j].first - 3] = (unsigned char) 0.0f;
     }
 }
 
@@ -156,6 +182,19 @@ void OCR::filterCorners(int N)
 void OCR::sortCorners()
 {     
     this->sort(this->corners); 
+}
+
+void OCR::filterEdges(int N)
+{  
+
+    this->sortEdges();    
+    this->edges.erase(this->edges.begin(), this->edges.end() - N);
+    
+}
+
+void OCR::sortEdges()
+{     
+    this->sort(this->edges); 
 }
 
 // Merge sort

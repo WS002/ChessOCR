@@ -12,10 +12,17 @@ private:
     
     // Vector with pairs: <index, score> of a corner
     std::vector<std::pair<int, double> > corners;
+    // Vector with pairs: <index, score> of an edge
+    std::vector<std::pair<int, double> > edges;
     
+    void whitenImage();
     void filterCorners(int N);
     void sortCorners();
     void displayCorners();
+    
+    void filterEdges(int N);
+    void sortEdges();
+    void displayEdges();
 
     void sort(std::vector<std::pair<int, double> > &v1);
     void merge(std::vector<std::pair<int, double> > &source, std::vector<std::pair<int, double> > &v1, std::vector<std::pair<int, double> > &v2);
