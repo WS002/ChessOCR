@@ -41,7 +41,7 @@ void OCR::cornerDetection()
     
     double maxScore = 0.0f;
     int cornerThreshold = 1000;
-    int edgeThreshold = 100000;
+    int edgeThreshold = 1000;
     
 // define gaussian kernel and the structure tensor matrix    
     for(int i = 3; i < this->size; i += 4)
@@ -128,7 +128,7 @@ void OCR::cornerDetection()
     this->filterCorners(cornerThreshold);
     this->displayCorners();
     
-    this->filterEdges(edgeThreshold);
+   // this->filterEdges(edgeThreshold);
     this->displayEdges();
     
     Log::getInstance().debug(maxScore);
