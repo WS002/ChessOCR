@@ -107,7 +107,7 @@ void OCR::cornerDetection()
             
             double k = 0.04f;
             double score = det - (k*trace*trace);
-            if(score > 0.0f)
+            if(score > 0.0f )
             {               
                 this->corners.push_back(std::make_pair(i, score));
             }
