@@ -176,23 +176,63 @@ void OCR::filterCorners(int N)
     //Global maxima
     this->sortCorners();    
     this->corners.erase(this->corners.begin(), this->corners.end() - N);
-    /*    
+    
     //Local maxima
-    for(int i = 0; i < corners.size(); ++i)
+    int kernelSize;
+    //Dynamically get the highest(3-9) possible kernel 
+    for(int i = 35; i > 2; --i)
     {
-        int currentIndex = corners[i].first;
-        double currentScore = corners[i].second;
-        
-        int left = currentIndex - 4;
-        int right = currentIndex + 4;
-        int top = currentIndex + (this->width * 4);
-        int topLeft = top - 4;
-        int topRight = top + 4;
-        int bottom = currentIndex - (this->width * 4);
-        int bottomLeft = bottom - 4;
-        int bottomRight = bottom + 4;
+        if(this->width % i == 0 && this->height % i == 0) 
+        {
+            kernelSize = i;
+            break;
+        }
     }
-    */
+    Log::getInstance().debug(kernelSize);
+    // number of bins = (this->width / kernel_size) * (this->height / kernel_size);
+    int numberOfBins = (this->width / kernelSize) * (this->height / kernelSize);
+    // bins/row = this->width / kernelSize
+    int binsPerRow = this->width / kernelSize;
+
+    //Default values for bins 
+    std::pair<int, double> bins[numberOfBins];
+    for(int b = 0; b < numberOfBins; ++b)
+    {
+        //Each bin has a pair of index and localMaxima 
+        bins[b] = std::make_pair(-1, 0.0f);
+    }
+    
+    for(int j = 0; j < this->corners.size(); ++j)
+    {
+        // index = this->corners[j].first
+        int index = this->corners[j].first;
+        double score = this->corners[j].second;
+        
+        int x = index % (this->width);
+        int y = index / (this->width * 4);
+        
+        //( int(y / kernel size) * binsPerRow) + int(x / kernel size) = bin index
+        int binIndex = ( (y/kernelSize) * binsPerRow ) + ( x/kernelSize );
+        // If score of current corner is bigger than the current local maxima of the bin
+        if(score > bins[binIndex].second)
+        {
+            // set new local maxima for this bin
+            bins[binIndex].second = score;
+            // set this corner to be the current max corner for this bin
+            bins[binIndex].first = index;
+        }        
+    }
+    
+    std::vector<std::pair<int, double> > filteredCorners;
+    for(int b = 0; b < numberOfBins; ++b)
+    {
+        if(bins[b].first > -1)
+            filteredCorners.push_back(std::make_pair(bins[b].first, bins[b].second) );
+    }
+
+    this->corners = filteredCorners;   
+    
+
 }
 
 void OCR::sortCorners()
