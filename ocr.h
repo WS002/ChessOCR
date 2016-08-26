@@ -21,6 +21,7 @@ private:
     void displayCorners();
     
     void filterEdges(int N);
+	void filterLocalMaxima(std::vector<std::pair<int, double> > &source, int kernelSize);
     void sortEdges();
     void displayEdges();
 

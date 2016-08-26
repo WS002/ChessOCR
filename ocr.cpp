@@ -5,12 +5,12 @@ OCR::~OCR()
 {
     if(NULL != this->horizontalDerivatives)
     {
-        delete horizontalDerivatives;
+        delete[] horizontalDerivatives;
         this->horizontalDerivatives = NULL;
     }
     if(NULL != this->verticalDerivatives)
     {
-        delete verticalDerivatives;
+        delete[] verticalDerivatives;
         this->verticalDerivatives = NULL;
     }
 }
@@ -173,40 +173,39 @@ void OCR::displayEdges()
 
 void OCR::filterCorners(int N)
 {  
-    //Global maxima
-    this->sortCorners();    
-    this->corners.erase(this->corners.begin(), this->corners.end() - N);
+   //Global maxima
+   //this->sortCorners();    
+   //this->corners.erase(this->corners.begin(), this->corners.end() - N);
     
-    //Local maxima
-    int kernelSize;
-    //Dynamically get the highest(3-9) possible kernel 
-    for(int i = 35; i > 2; --i)
-    {
-        if(this->width % i == 0 && this->height % i == 0) 
-        {
-            kernelSize = i;
-            break;
-        }
-    }
-    Log::getInstance().debug(kernelSize);
-    // number of bins = (this->width / kernel_size) * (this->height / kernel_size);
+   this->filterLocalMaxima(this->corners, 3);
+   this->filterLocalMaxima(this->corners, 9);
+   this->filterLocalMaxima(this->corners, 50);
+  
+    
+
+}
+
+void OCR::filterLocalMaxima(std::vector<std::pair<int, double> > &source, int kernelSize)
+{
+	   // number of bins = (this->width / kernel_size) * (this->height / kernel_size);
     int numberOfBins = (this->width / kernelSize) * (this->height / kernelSize);
     // bins/row = this->width / kernelSize
     int binsPerRow = this->width / kernelSize;
-
+			
     //Default values for bins 
-    std::pair<int, double> bins[numberOfBins];
+    std::pair<int, double>* bins = new std::pair<int, double>[2000000];
+	
     for(int b = 0; b < numberOfBins; ++b)
     {
         //Each bin has a pair of index and localMaxima 
         bins[b] = std::make_pair(-1, 0.0f);
     }
     
-    for(int j = 0; j < this->corners.size(); ++j)
+    for(int j = 0; j < source.size(); ++j)
     {
-        // index = this->corners[j].first
-        int index = this->corners[j].first;
-        double score = this->corners[j].second;
+        // index = source[j].first
+        int index = source[j].first;
+        double score = source[j].second;
         
         int x = index % (this->width);
         int y = index / (this->width * 4);
@@ -230,9 +229,8 @@ void OCR::filterCorners(int N)
             filteredCorners.push_back(std::make_pair(bins[b].first, bins[b].second) );
     }
 
-    this->corners = filteredCorners;   
-    
-
+	delete[] bins;
+    source = filteredCorners;  
 }
 
 void OCR::sortCorners()
@@ -309,7 +307,7 @@ void OCR::computeHorizontalDerivatives()
 {
     if(NULL != this->horizontalDerivatives)
     {
-        delete horizontalDerivatives;
+        delete[] horizontalDerivatives;
         this->horizontalDerivatives = NULL;
     }
     // Use sobel operator
@@ -415,7 +413,7 @@ void OCR::computeVerticalDerivatives()
 {
      if(NULL != this->verticalDerivatives)
     {
-        delete verticalDerivatives;
+        delete[] verticalDerivatives;
         this->verticalDerivatives = NULL;
     }
     // Use sobel operator
