@@ -23,20 +23,20 @@ void OCR::cornerDetection()
     this->blur();
 
  // grayscale the image ( binarize = true?)
-    this->grayscale(1);
+    this->grayscale();
     
     
     
  // compute horizontal derivatives image
     char horizontalImagePath[] = "whateverHorizontal.bmp";
     this->computeHorizontalDerivatives();
-	this->blur(horizontalDerivatives);
+	//this->blur(horizontalDerivatives);
     this->saveHorizontalBMP(horizontalImagePath);
     
 // compute vertical derivatives image
     char verticalImagePath[] = "whateverVertical.bmp";
     this->computeVerticalDerivatives();
-	this->blur(verticalDerivatives);
+	//this->blur(verticalDerivatives);
     this->saveVerticalBMP(verticalImagePath);
     
     double maxScore = 0.0f;
@@ -174,12 +174,15 @@ void OCR::displayEdges()
 void OCR::filterCorners(int N)
 {  
    //Global maxima
-   //this->sortCorners();    
-   //this->corners.erase(this->corners.begin(), this->corners.end() - N);
+   this->sortCorners();    
+   this->corners.erase(this->corners.begin(), this->corners.end() - N);
     
+  
    this->filterLocalMaxima(this->corners, 3);
+   this->filterLocalMaxima(this->corners, 6);
    this->filterLocalMaxima(this->corners, 9);
-   this->filterLocalMaxima(this->corners, 50);
+   
+
   
     
 
@@ -193,7 +196,7 @@ void OCR::filterLocalMaxima(std::vector<std::pair<int, double> > &source, int ke
     int binsPerRow = this->width / kernelSize;
 			
     //Default values for bins 
-    std::pair<int, double>* bins = new std::pair<int, double>[2000000];
+    std::pair<int, double>* bins = new std::pair<int, double>[numberOfBins];
 	
     for(int b = 0; b < numberOfBins; ++b)
     {
