@@ -208,6 +208,9 @@ void OCR::filterLocalMaxima(std::vector<std::pair<int, double> > &source, int ke
     {
         // index = source[j].first
         int index = source[j].first;
+        if(index < 0)
+            continue;
+            
         double score = source[j].second;
         
         int x = index % (this->width);
@@ -225,16 +228,17 @@ void OCR::filterLocalMaxima(std::vector<std::pair<int, double> > &source, int ke
         }        
     }
     
-    std::vector<std::pair<int, double> > filteredCorners;
+    std::vector<std::pair<int, double> > filtered;
     for(int b = 0; b < numberOfBins; ++b)
     {
         if(bins[b].first > -1)
-            filteredCorners.push_back(std::make_pair(bins[b].first, bins[b].second) );
+            filtered.push_back(std::make_pair(bins[b].first, bins[b].second) );
     }
 
 	delete[] bins;
-    source = filteredCorners;  
+    source = filtered;  
 }
+
 
 void OCR::sortCorners()
 {     
@@ -387,6 +391,69 @@ void OCR::computeHorizontalDerivatives()
         
     }
     
+    
+}
+
+
+void OCR::chessBoardDetection()
+{ 
+    this->cornerDetection();
+
+    //Implement Hough transform
+    this->houghTransform();
+    
+    //Extract chessboard 
+
+}
+
+void OCR::houghTransform()
+{
+    const int thetaSpace = 360;
+    int rSpace;
+    if(this->width > this->height){
+      rSpace = this->width; 
+    }else {
+      rSpace = this->height;
+    }
+
+    // Accumulator array: consists of vector of thetas, each theta consists of vector of r's
+    // The value of theta and r is a pair of (int) array index and (int) accumulatorValue
+    std::vector< std::vector<std::pair<int, double> > > accumulator;
+    
+    for(int theta = 0; theta < thetaSpace; ++theta)
+    {
+        std::vector<std::pair<int, double> > rVec;
+        for(int r = 0; r < rSpace; ++r)
+        {
+            rVec.push_back(std::make_pair(-1, 0.0));
+        }
+        accumulator.push_back(rVec);
+    }
+    // Loop through all corners
+    for(int i = 0; i < this->corners.size(); i++)
+    {    
+        int index = this->corners[i].first;
+        int x = index % (this->width);
+        int y = index / (this->width * 4);
+        
+        // Transform to polar coordinates
+        // For every value of theta, calculate r for this x and y and increment the accumulator
+        for(int theta = 0; theta < thetaSpace; ++theta)
+        {
+            int r = abs( (int) ( (double)x * cos(theta * PI/180) + (double)y*sin(theta * PI/180) ) );
+            if(r > this->width)
+                r = this->width;
+                
+            accumulator[theta][r].second += 1.0;
+            accumulator[theta][r].first = index;
+        }
+        
+    }
+    /*
+    for(int theta = 0; theta < thetaSpace; ++theta)
+    {
+        this->filterLocalMaxima(accumulator[theta], 9);
+    }*/
     
 }
 

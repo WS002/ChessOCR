@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     // TODO: add constructor to image.cpp
     // Takes screenshot and saves it in BMP format. 
     ocr->TakeScreenShot();        
-    ocr->cornerDetection();
+    ocr->chessBoardDetection();
     ocr->saveBMP(imagePath);
    
     

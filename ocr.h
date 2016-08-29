@@ -3,6 +3,9 @@
 
 #include "image.h"
 #include <vector>
+#include <math.h>
+
+#define PI 3.14159265
 
 class OCR: public BmpImage
 {
@@ -14,6 +17,7 @@ private:
     std::vector<std::pair<int, double> > corners;
     // Vector with pairs: <index, score> of an edge
     std::vector<std::pair<int, double> > edges;
+    
     
     void whitenImage();
     void filterCorners(int N);
@@ -27,6 +31,8 @@ private:
 
     void sort(std::vector<std::pair<int, double> > &v1);
     void merge(std::vector<std::pair<int, double> > &source, std::vector<std::pair<int, double> > &v1, std::vector<std::pair<int, double> > &v2);
+    
+    void houghTransform();
 public:
     OCR():BmpImage()
     {
@@ -35,6 +41,7 @@ public:
     };
     ~OCR();
     void cornerDetection();
+    void chessBoardDetection();
     
     void computeHorizontalDerivatives();
     void saveHorizontalBMP(char* filename);
