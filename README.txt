@@ -1,4 +1,4 @@
-Compile with g++ .\main.cpp .\image.cpp ocr.cpp -lgdi32 
+Compile with g++ .\main.cpp .\image.cpp ocr.cpp -lgdi32 -w
 
 -lgdi32: 	Links gdi32 library
 -w:	 	Ignores warnings
