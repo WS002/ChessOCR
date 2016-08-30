@@ -125,13 +125,15 @@ void OCR::cornerDetection()
     
     this->whitenImage();
     
+    cornerThreshold = 1000;
+    
     this->filterCorners(cornerThreshold);
     this->displayCorners();
     
    // this->filterEdges(edgeThreshold);
     this->displayEdges();
     
-    Log::getInstance().debug(maxScore);
+    Log::getInstance().debug(cornerThreshold);
 }
 
 void OCR::whitenImage()
@@ -173,19 +175,23 @@ void OCR::displayEdges()
 
 void OCR::filterCorners(int N)
 {  
+    //Local maxima
+   for(int i = 9; i > 1; i--)
+   {
+        if(this->width % i == 0 && this->height % i == 0)
+        {
+            this->filterLocalMaxima(this->corners, i);
+            break;
+        }
+   }
+   
+   if(N > this->corners.size())
+        N = this->corners.size();
+   
    //Global maxima
    this->sortCorners();    
    this->corners.erase(this->corners.begin(), this->corners.end() - N);
     
-  
-   this->filterLocalMaxima(this->corners, 3);
-   this->filterLocalMaxima(this->corners, 6);
-   this->filterLocalMaxima(this->corners, 9);
-   
-
-  
-    
-
 }
 
 void OCR::filterLocalMaxima(std::vector<std::pair<int, double> > &source, int kernelSize)
@@ -198,7 +204,7 @@ void OCR::filterLocalMaxima(std::vector<std::pair<int, double> > &source, int ke
     //Default values for bins 
     std::pair<int, double>* bins = new std::pair<int, double>[numberOfBins];
 	
-    for(int b = 0; b < numberOfBins; ++b)
+    for(int b = 0; b < numberOfBins; b++)
     {
         //Each bin has a pair of index and localMaxima 
         bins[b] = std::make_pair(-1, 0.0f);
@@ -229,7 +235,7 @@ void OCR::filterLocalMaxima(std::vector<std::pair<int, double> > &source, int ke
     }
     
     std::vector<std::pair<int, double> > filtered;
-    for(int b = 0; b < numberOfBins; ++b)
+    for(int b = 0; b < numberOfBins; b++)
     {
         if(bins[b].first > -1)
             filtered.push_back(std::make_pair(bins[b].first, bins[b].second) );
@@ -282,7 +288,7 @@ void OCR::merge(std::vector<std::pair<int, double> > &source, std::vector<std::p
     unsigned int x = 0;
     unsigned int y = 0;
     
-    for(int i = 0; i < source.size(); ++i)
+    for(int i = 0; i < source.size(); i++)
     {
         if( v1.size() == x)
         {
@@ -410,22 +416,19 @@ void OCR::houghTransform()
 {
     const int thetaSpace = 360;
     int rSpace;
-    if(this->width > this->height){
-      rSpace = this->width; 
-    }else {
-      rSpace = this->height;
-    }
+    rSpace = sqrt(this->width*this->width + this->height*this->height);
 
     // Accumulator array: consists of vector of thetas, each theta consists of vector of r's
-    // The value of theta and r is a pair of (int) array index and (int) accumulatorValue
-    std::vector< std::vector<std::pair<int, double> > > accumulator;
+    // The value of theta and r is a pair of (int) vector of indices and (int) accumulatorValue
+    std::vector< std::vector<std::pair<std::vector<int>, int> > > accumulator;
     
-    for(int theta = 0; theta < thetaSpace; ++theta)
+    for(int theta = 0; theta < thetaSpace; theta++)
     {
-        std::vector<std::pair<int, double> > rVec;
+        std::vector<std::pair<std::vector<int>, int> > rVec;
         for(int r = 0; r < rSpace; ++r)
         {
-            rVec.push_back(std::make_pair(-1, 0.0));
+            std::vector<int> involvedIndices;
+            rVec.push_back(std::make_pair(involvedIndices, 0.0));
         }
         accumulator.push_back(rVec);
     }
@@ -440,20 +443,47 @@ void OCR::houghTransform()
         // For every value of theta, calculate r for this x and y and increment the accumulator
         for(int theta = 0; theta < thetaSpace; ++theta)
         {
-            int r = abs( (int) ( (double)x * cos(theta * PI/180) + (double)y*sin(theta * PI/180) ) );
-            if(r > this->width)
-                r = this->width;
-                
-            accumulator[theta][r].second += 1.0;
-            accumulator[theta][r].first = index;
+            int r =  abs((int) ( (double)x * cos((double) theta * (double) PI/180) + (double)y*sin((double) theta * (double) PI/180) ));
+           
+            accumulator[theta][r].second += 1;
+            accumulator[theta][r].first.push_back(index);
         }
         
     }
-    /*
-    for(int theta = 0; theta < thetaSpace; ++theta)
+    
+    //local maxima + filter for chessboard extraction
+    int kernelSize = 9;
+    for(int theta = 0; theta < 91; theta+=90)
     {
-        this->filterLocalMaxima(accumulator[theta], 9);
-    }*/
+        for(int r = kernelSize; r < rSpace; r+=kernelSize)
+        {
+            int max = 0;
+            int maxR = r;
+            
+            for(int k = kernelSize; k > 0; k--)
+            {
+                if(accumulator[theta][r-k].second > max)
+                {
+                    max = accumulator[theta][r-k].second;
+                    maxR = r-k;
+                }
+            }
+        
+            if(accumulator[theta][maxR].second > 5 && accumulator[theta][maxR].second < 40)
+            {
+                for(int j = 0; j < accumulator[theta][maxR].first.size(); j++)
+                {
+                    //B
+                    this->pixels[accumulator[theta][maxR].first[j] - 3] = 0.0f;
+                    //G
+                    this->pixels[accumulator[theta][maxR].first[j] - 2] = 255.0f;
+                    //R
+                    this->pixels[accumulator[theta][maxR].first[j] - 1] = 0.0f;
+                }
+                
+            }
+        }
+    }
     
 }
 
