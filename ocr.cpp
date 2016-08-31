@@ -20,7 +20,7 @@ void OCR::cornerDetection()
  // Harris corner detection
  
  // optional: Gaussian blur the image
-    this->blur();
+    //this->blur();
 
  // grayscale the image ( binarize = true?)
     this->grayscale();
@@ -40,8 +40,7 @@ void OCR::cornerDetection()
     this->saveVerticalBMP(verticalImagePath);
     
     double maxScore = 0.0f;
-    int cornerThreshold = 1000;
-    int edgeThreshold = 1000;
+
     
 // define gaussian kernel and the structure tensor matrix    
     for(int i = 3; i < this->size; i += 4)
@@ -125,12 +124,13 @@ void OCR::cornerDetection()
     
     this->whitenImage();
     
-    cornerThreshold = 1000;
+    int cornerThreshold = 100000;
+    int edgeThreshold = 1000;
     
     this->filterCorners(cornerThreshold);
     this->displayCorners();
     
-   // this->filterEdges(edgeThreshold);
+    //this->filterEdges(edgeThreshold);
     this->displayEdges();
     
     Log::getInstance().debug(cornerThreshold);
@@ -176,21 +176,22 @@ void OCR::displayEdges()
 void OCR::filterCorners(int N)
 {  
     //Local maxima
-   for(int i = 9; i > 1; i--)
+   for(int i = 21; i > 1; i--)
    {
         if(this->width % i == 0 && this->height % i == 0)
         {
-            this->filterLocalMaxima(this->corners, i);
+           // this->filterLocalMaxima(this->corners, i);
             break;
         }
    }
    
+   //Just to be safe....
    if(N > this->corners.size())
         N = this->corners.size();
    
    //Global maxima
-   this->sortCorners();    
-   this->corners.erase(this->corners.begin(), this->corners.end() - N);
+  // this->sortCorners();    
+   //this->corners.erase(this->corners.begin(), this->corners.end() - N);
     
 }
 
@@ -253,6 +254,20 @@ void OCR::sortCorners()
 
 void OCR::filterEdges(int N)
 {  
+
+ //Local maxima
+   for(int i = 9; i > 1; i--)
+   {
+        if(this->width % i == 0 && this->height % i == 0)
+        {
+            this->filterLocalMaxima(this->edges, i);
+            break;
+        }
+   }
+
+  //Just to be safe....
+   if(N > this->edges.size())
+        N = this->edges.size();
 
     this->sortEdges();    
     this->edges.erase(this->edges.begin(), this->edges.end() - N);
@@ -414,21 +429,24 @@ void OCR::chessBoardDetection()
 
 void OCR::houghTransform()
 {
-    const int thetaSpace = 360;
-    int rSpace;
-    rSpace = sqrt(this->width*this->width + this->height*this->height);
+    // Get only horizontal and vertical thetas
+    int thetaSpace[2];
+    thetaSpace[0] = 0;
+    thetaSpace[0] = 90;
+    
+    int rSpace = sqrt(this->width*this->width + this->height*this->height);
 
     // Accumulator array: consists of vector of thetas, each theta consists of vector of r's
     // The value of theta and r is a pair of (int) vector of indices and (int) accumulatorValue
     std::vector< std::vector<std::pair<std::vector<int>, int> > > accumulator;
     
-    for(int theta = 0; theta < thetaSpace; theta++)
+    for(int theta = 0; theta < 2; theta++)
     {
         std::vector<std::pair<std::vector<int>, int> > rVec;
-        for(int r = 0; r < rSpace; ++r)
+        for(int r = 0; r < rSpace; r++)
         {
             std::vector<int> involvedIndices;
-            rVec.push_back(std::make_pair(involvedIndices, 0.0));
+            rVec.push_back(std::make_pair(involvedIndices, 0));
         }
         accumulator.push_back(rVec);
     }
@@ -441,9 +459,9 @@ void OCR::houghTransform()
         
         // Transform to polar coordinates
         // For every value of theta, calculate r for this x and y and increment the accumulator
-        for(int theta = 0; theta < thetaSpace; ++theta)
+        for(int theta = 0; theta < 2; theta++)
         {
-            int r =  abs((int) ( (double)x * cos((double) theta * (double) PI/180) + (double)y*sin((double) theta * (double) PI/180) ));
+            int r =  abs((int) ( (double)x * cos((double) thetaSpace[theta] * (double) PI/180) + (double)y*sin((double) thetaSpace[theta] * (double) PI/180) ));
            
             accumulator[theta][r].second += 1;
             accumulator[theta][r].first.push_back(index);
@@ -452,38 +470,44 @@ void OCR::houghTransform()
     }
     
     //local maxima + filter for chessboard extraction
-    int kernelSize = 9;
-    for(int theta = 0; theta < 91; theta+=90)
-    {
-        for(int r = kernelSize; r < rSpace; r+=kernelSize)
-        {
-            int max = 0;
-            int maxR = r;
-            
-            for(int k = kernelSize; k > 0; k--)
-            {
-                if(accumulator[theta][r-k].second > max)
-                {
-                    max = accumulator[theta][r-k].second;
-                    maxR = r-k;
-                }
-            }
+   // int kernelSize = 9;
+ 
+    //for(int r = kernelSize; r < rSpace; r+=kernelSize)
+    //{
+       // int max = 0;
+      //  int maxR = r;
         
-            if(accumulator[theta][maxR].second > 5 && accumulator[theta][maxR].second < 40)
-            {
-                for(int j = 0; j < accumulator[theta][maxR].first.size(); j++)
-                {
-                    //B
-                    this->pixels[accumulator[theta][maxR].first[j] - 3] = 0.0f;
-                    //G
-                    this->pixels[accumulator[theta][maxR].first[j] - 2] = 255.0f;
-                    //R
-                    this->pixels[accumulator[theta][maxR].first[j] - 1] = 0.0f;
-                }
-                
+       // for(int k = kernelSize; k > 0; k--)
+       // {
+       //     if(accumulator[0][r-k].second > max)
+       //     {
+       //         max = accumulator[0][r-k].second;
+       //         maxR = r-k;
+        //    }
+        //}
+        
+        for(int r = 0; r < rSpace; r++)
+        {
+            for(int theta = 0; theta < 2; theta++)
+            {    
+                //if(accumulator[theta][maxR].second > 7 && accumulator[theta][maxR].second < 50)
+               // {
+                    for(int j = 0; j < accumulator[theta][r].first.size(); j++)
+                    {
+                        
+                        //B
+                        this->pixels[accumulator[theta][r].first[j] - 3] = 0.0f;
+                        //G
+                        this->pixels[accumulator[theta][r].first[j] - 2] = 255.0f;
+                        //R
+                        this->pixels[accumulator[theta][r].first[j] - 1] = 0.0f;
+                    }
+                    
+               // }
             }
         }
-    }
+   // }
+    
     
 }
 
