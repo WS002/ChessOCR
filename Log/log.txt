@@ -1,5 +1,5 @@
 Image size: 
-100000
+2.16479e+022
 Pixels RGB: 
 255
 255

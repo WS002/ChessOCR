@@ -31,6 +31,7 @@ private:
 
     void sort(std::vector<std::pair<int, double> > &v1);
     void merge(std::vector<std::pair<int, double> > &source, std::vector<std::pair<int, double> > &v1, std::vector<std::pair<int, double> > &v2);
+    void dilate();
     
     void houghTransform();
 public:

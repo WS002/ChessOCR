@@ -40,33 +40,122 @@ void OCR::cornerDetection()
     this->saveVerticalBMP(verticalImagePath);
     
     double maxScore = 0.0f;
+    int kernelSize = 3;
+    int movePositions = kernelSize / 2;
 
-    
+        int c = 0;
 // define gaussian kernel and the structure tensor matrix    
     for(int i = 3; i < this->size; i += 4)
-    {        
+    {      
+    
         //Ignore border pixels
-        if(!( i < this->width * 4) && !(i > this->size - (this->width * 4)) 
-        &&  !(i % (4*this->width) == 3) && !((i+1) % (4*this->width) == 0) )
+        if(!( i < this->width * 4 * movePositions) && !(i > this->size - (this->width * 4 * movePositions)) 
+        &&  !(i % (4*this->width) < 3 + (4 * (movePositions-1) ) ) && !( i % (4*this->width) > ((4*this->width) - (4* (movePositions-1)) - 1 ) ))
         {
+        
             double tensorMatrix[2][2];
+            int kernel[kernelSize][kernelSize];
+            
             // All channels have same intensities for the current pixel
+            
+            // Current
             int current = i - 1;
-            int left = i - 5;
-            int right = i + 5;
-            int top = i + (this->width * 4) - 1;
-            int topLeft = top - 4;
-            int topRight = top + 4;
-            int bottom = i - (this->width * 4) - 1;
-            int bottomLeft = bottom - 4;
-            int bottomRight = bottom + 4;
+            kernel[movePositions][movePositions] = current;
+            
+            // Top 
+            int topCounter = 1;
+            while(topCounter <= movePositions)
+            {
+            
+                int top = i + (topCounter * this->width * 4) - 1;
+                kernel[movePositions][movePositions+topCounter] = top;
+                
+                int leftCounter = 1;
+                while(leftCounter <= movePositions) 
+                {
+                    int left = top - leftCounter * 4;
+                    kernel[movePositions - leftCounter][movePositions+topCounter] = left;
+                    leftCounter++;
+                }
+                
+                int rightCounter = 1;
+                while(rightCounter <= movePositions) 
+                {
+                    int right = top + rightCounter * 4;    
+                    kernel[movePositions + rightCounter][movePositions+topCounter] = right;
+                    rightCounter++;
+                }
+                
+                topCounter++;
+            }
+            
+            // Bottom
+            int bottomCounter = 1;
+            while(bottomCounter <= movePositions)
+            {
+            
+                int bottom = i - (bottomCounter * this->width * 4) - 1;
+                kernel[movePositions][movePositions-bottomCounter] = bottom;
+                
+                int leftCounter = 1;
+                while(leftCounter <= movePositions) 
+                {
+                    int left = bottom - leftCounter * 4;
+                    kernel[movePositions - leftCounter][movePositions-bottomCounter] = left;
+                    leftCounter++;
+                }
+                
+                int rightCounter = 1;
+                while(rightCounter <= movePositions) 
+                {
+                    int right = bottom + rightCounter * 4;    
+                    kernel[movePositions + rightCounter][movePositions-bottomCounter] = right;
+                    rightCounter++;
+                }
+                
+                bottomCounter++;
+            }
+            
+            //Left
+            int leftCounter = 1;
+            while(leftCounter <= movePositions) 
+            {
+                int left = current - leftCounter * 4;
+                kernel[movePositions - leftCounter][movePositions] = left;
+                leftCounter++;
+            }
+            
+            //Right
+            int rightCounter = 1;
+            while(rightCounter <= movePositions) 
+            {
+                int right = current + rightCounter * 4;
+                kernel[movePositions + rightCounter][movePositions] = right;
+                rightCounter++;
+            }
+            
+            
+            double xDiff;
+            double yDiff;
+            double xyDiff;
             
             //tensorMatrix[0][0] Ix * Iy
             //tensorMatrix[0][1] Iy * Iy
             //tensorMatrix[1][0] Ix * Ix
             //tensorMatrix[1][1] Iy * Iy
             
-           double xDiff = (double)this->horizontalDerivatives[current] * (double)this->horizontalDerivatives[current] * 0.25f 
+            for(int kX = 0; kX < kernelSize; ++kX)
+            {
+                for(int kY = 0; kY < kernelSize; ++kY)
+                {
+                    //TODO: Gaussian ?
+                    xDiff += (double)this->horizontalDerivatives[ kernel[kX][kY] ] * (double)this->horizontalDerivatives[ kernel[kX][kY] ];
+                    yDiff += (double)this->verticalDerivatives[ kernel[kX][kY] ] * (double)this->verticalDerivatives[ kernel[kX][kY] ];
+                    xyDiff += (double)this->verticalDerivatives[ kernel[kX][kY] ] * (double)this->horizontalDerivatives[ kernel[kX][kY] ];
+                }
+            }
+            
+          /* double xDiff = (double)this->horizontalDerivatives[current] * (double)this->horizontalDerivatives[current] * 0.25f 
                         + (double)this->horizontalDerivatives[left] *(double)this->horizontalDerivatives[left] * 0.125f
                         + (double)this->horizontalDerivatives[right] * (double)this->horizontalDerivatives[right] * 0.125f
                         + (double)this->horizontalDerivatives[top] * (double)this->horizontalDerivatives[top] * 0.125f
@@ -95,7 +184,7 @@ void OCR::cornerDetection()
                         + (double)this->verticalDerivatives[topRight] * (double)this->horizontalDerivatives[topRight] * 0.0625f
                         + (double)this->verticalDerivatives[bottomLeft] * (double)this->horizontalDerivatives[bottomLeft] * 0.0625f
                         + (double)this->verticalDerivatives[bottomRight] * (double)this->horizontalDerivatives[bottomRight] * 0.0625f;
-           
+          */ 
 // Compute the score det(H) - k*(Trace(H))^2 and a certain threshold
             tensorMatrix[0][0] = xyDiff;
             tensorMatrix[0][1] = yDiff;
@@ -104,36 +193,87 @@ void OCR::cornerDetection()
             
             double trace = tensorMatrix[1][0] + tensorMatrix[0][1];
             double det = (tensorMatrix[1][0] * tensorMatrix[0][1]) - (tensorMatrix[0][0] * tensorMatrix[1][1]);
-            
+             
             double k = 0.04f;
             double score = det - (k*trace*trace);
-            if(score > 0.0f )
-            {               
+
+            if(score > 10000000000000000000000.0f )
+            {                   
                 this->corners.push_back(std::make_pair(i, score));
             }else if(score < -1000000.0f) 
             {
-                this->edges.push_back(std::make_pair(i, score));
+                //this->edges.push_back(std::make_pair(i, score));
             }
                 
                 
             if(score > maxScore)
                 maxScore = score;      
                       
+        
         }
     }
-    
     this->whitenImage();
     
-    int cornerThreshold = 100000;
+    int cornerThreshold = 10000;
     int edgeThreshold = 1000;
     
-    this->filterCorners(cornerThreshold);
-    this->displayCorners();
-    
+   // this->filterCorners(cornerThreshold);
+   
+   // this->dilate();
+     this->displayCorners();
     //this->filterEdges(edgeThreshold);
-    this->displayEdges();
+   // this->displayEdges();
     
-    Log::getInstance().debug(cornerThreshold);
+    Log::getInstance().debug(maxScore);
+}
+
+void OCR::dilate()
+{
+    for(int i = 3; i < this->size; i += 4)
+    {
+         //Ignore border pixels
+        if(!( i < this->width * 4) && !(i > this->size - (this->width * 4)) 
+        &&  !(i % (4*this->width) == 3) && !((i+1) % (4*this->width) == 0) )
+        {
+            int kernel[9];
+            
+            kernel[0] = i - 1;
+            kernel[1] = i - 5;
+            kernel[2] = i + 5;
+            kernel[3] = i + (this->width * 4) - 1;
+            kernel[4] = kernel[3] - 4;
+            kernel[5] = kernel[3] + 4;
+            kernel[6] = i - (this->width * 4) - 1;
+            kernel[7] = kernel[6] - 4;
+            kernel[8] = kernel[6] + 4;
+            
+            // Get max value
+            int maxR = 0;
+            int maxB = 0;
+            int maxG = 0;
+            
+            for(int j = 0; j < 9; ++j)
+            {
+                if(this->pixels[kernel[j]] > maxB)
+                    maxB = this->pixels[kernel[j]];
+                    
+                if(this->pixels[kernel[j]] > maxG)
+                    maxG = this->pixels[kernel[j] - 1];
+                    
+                if(this->pixels[kernel[j]] > maxR)
+                    maxR = this->pixels[kernel[j] - 2];
+            }
+            
+            //Set all pixels to max value
+            for(int j = 0; j < 9; ++j)
+            {
+                this->pixels[kernel[j]] = maxB;
+                this->pixels[kernel[j]-1] = maxG;
+                this->pixels[kernel[j]-2] = maxR;
+            }
+            
+        }
+    }
 }
 
 void OCR::whitenImage()
@@ -176,22 +316,22 @@ void OCR::displayEdges()
 void OCR::filterCorners(int N)
 {  
     //Local maxima
-   for(int i = 21; i > 1; i--)
+  /* for(int i = 9; i > 1; i--)
    {
         if(this->width % i == 0 && this->height % i == 0)
         {
-           // this->filterLocalMaxima(this->corners, i);
+            this->filterLocalMaxima(this->corners, i);
             break;
         }
-   }
+   }*/
    
    //Just to be safe....
    if(N > this->corners.size())
         N = this->corners.size();
    
    //Global maxima
-  // this->sortCorners();    
-   //this->corners.erase(this->corners.begin(), this->corners.end() - N);
+   this->sortCorners();    
+   this->corners.erase(this->corners.begin(), this->corners.end() - N);
     
 }
 
@@ -213,7 +353,7 @@ void OCR::filterLocalMaxima(std::vector<std::pair<int, double> > &source, int ke
     
     for(int j = 0; j < source.size(); ++j)
     {
-        // index = source[j].first
+
         int index = source[j].first;
         if(index < 0)
             continue;
@@ -421,7 +561,7 @@ void OCR::chessBoardDetection()
     this->cornerDetection();
 
     //Implement Hough transform
-    this->houghTransform();
+    //this->houghTransform();
     
     //Extract chessboard 
 
@@ -488,23 +628,27 @@ void OCR::houghTransform()
         
         for(int r = 0; r < rSpace; r++)
         {
-            for(int theta = 0; theta < 2; theta++)
-            {    
-                //if(accumulator[theta][maxR].second > 7 && accumulator[theta][maxR].second < 50)
-               // {
-                    for(int j = 0; j < accumulator[theta][r].first.size(); j++)
-                    {
-                        
-                        //B
-                        this->pixels[accumulator[theta][r].first[j] - 3] = 0.0f;
-                        //G
-                        this->pixels[accumulator[theta][r].first[j] - 2] = 255.0f;
-                        //R
-                        this->pixels[accumulator[theta][r].first[j] - 1] = 0.0f;
+              
+            //if(accumulator[theta][maxR].second > 7 && accumulator[theta][maxR].second < 50)
+           // {
+                for(int j = 0; j < accumulator[0][r].first.size(); j++)
+                {
+                    for(int k = 0; k < accumulator[1][r].first.size(); k++)
+                    {   
+                        if(accumulator[0][r].first[j] == accumulator[1][r].first[k])
+                        {
+                            //B
+                            this->pixels[accumulator[0][r].first[j] - 3] = 0.0f;
+                            //G
+                            this->pixels[accumulator[0][r].first[j] - 2] = 255.0f;
+                            //R
+                            this->pixels[accumulator[0][r].first[j] - 1] = 0.0f;
+                        }
                     }
-                    
-               // }
-            }
+                }
+                
+           // }
+            
         }
    // }
     
