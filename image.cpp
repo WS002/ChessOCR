@@ -49,9 +49,7 @@ void BmpImage::TakeScreenShot()
         } 
         bmpInfo.bmiHeader.biCompression=BI_RGB;
         GetDIBits(hdc,h,0,bmpInfo.bmiHeader.biHeight,pBuf, &bmpInfo, DIB_RGB_COLORS);
-       
-        Log::getInstance().debug("Image size: ");
-	   
+       	   
 		this->width = bmpInfo.bmiHeader.biWidth;
 		this->height = abs(bmpInfo.bmiHeader.biHeight);
 		this->size 	= bmpInfo.bmiHeader.biWidth * abs(bmpInfo.bmiHeader.biHeight) * 4;
@@ -76,10 +74,6 @@ void BmpImage::saveBMP(char* filename)
 	}
 		
 	// pixels is a pointer that points to first element of the array. e.g Get 2nd element by either pixels[1] or *(pixels + 1), which retrieves the next address.
-    Log::getInstance().debug("Pixels RGB: ");
-    Log::getInstance().debug((int)this->pixels[0]);
-    Log::getInstance().debug((int)this->pixels[1]);
-    Log::getInstance().debug((int)this->pixels[2]);
     
     Log::getInstance().debug(this->width);
     Log::getInstance().debug(this->height);

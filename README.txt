@@ -1,7 +1,8 @@
-Compile with g++ .\main.cpp .\image.cpp ocr.cpp -lgdi32 -w
+Compile with g++ .\main.cpp .\image.cpp ocr.cpp -lgdi32 -w -std=c++11
 
 -lgdi32: 	Links gdi32 library
 -w:	 	Ignores warnings
+-std=c++11:	For unordered map library
 
 
 

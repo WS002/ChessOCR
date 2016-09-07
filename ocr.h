@@ -4,6 +4,7 @@
 #include "image.h"
 #include <vector>
 #include <math.h>
+#include <unordered_map>
 
 #define PI 3.14159265
 
