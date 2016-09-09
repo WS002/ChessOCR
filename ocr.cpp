@@ -13,6 +13,18 @@ OCR::~OCR()
         delete[] verticalDerivatives;
         this->verticalDerivatives = NULL;
     }
+    
+    if(NULL != this->pixelScores)
+    {
+        delete[] pixelScores;
+        this->pixelScores = NULL;
+    }
+    
+    if(NULL != this->pixelEdges)
+    {
+        delete[] pixelEdges;
+        this->pixelEdges = NULL;
+    }
 }
 
 void OCR::cornerDetection()
@@ -40,8 +52,15 @@ void OCR::cornerDetection()
     this->saveVerticalBMP(verticalImagePath);
     
     double maxScore = 0.0f;
-    int kernelSize = 7;
+    int kernelSize = 11;
     int movePositions = kernelSize / 2;
+    
+    this->pixelScores = new double[this->size];
+    // If 0, no edge; if 1, edge
+    this->pixelEdges = new int[this->size];
+    // populate with 0's
+    for(int pE = 0; pE < this->size; pE++)
+        this->pixelEdges[pE] = 0;
 
 // define gaussian kernel and the structure tensor matrix    
     for(int i = 3; i < this->size; i += 4)
@@ -172,6 +191,11 @@ void OCR::cornerDetection()
             double k = 0.04f;
             double score = det - (k*trace*trace);
            
+            this->pixelScores[i] = score;
+            this->pixelScores[i-1] = score;
+            this->pixelScores[i-2] = score;
+            this->pixelScores[i-3] = score;
+           
             if(score > 0.0f )
             {                   
                 this->corners.push_back(std::make_pair(i, score));
@@ -194,15 +218,20 @@ void OCR::cornerDetection()
     int cornerThreshold = this->corners.size()/5;
     int edgeThreshold = this->edges.size()/5;
     
-    this->filterCorners(cornerThreshold);
-   
-   // this->dilate();
-    this->displayCorners();
     this->filterEdges(edgeThreshold);
+    for(int edge = 0; edge < this->edges.size(); edge++)
+    {
+        this->pixelEdges[edge] = 1;
+    }
+    
     this->displayEdges();
     
+    //this->filterCorners(cornerThreshold);  
+   // this->dilate();
+    //this->displayCorners();
+   
+    
     Log::getInstance().debug(maxScore);
-    Log::getInstance().debug(this->edges.size());
     
 }
 
@@ -294,25 +323,163 @@ void OCR::displayEdges()
 
 void OCR::filterCorners(int N)
 {  
+  
     //Local maxima
-   //for(int i = 9; i > 1; i--)
-   //{
-   //     if(this->width % i == 0 && this->height % i == 0)
-    //    {
-   //         this->filterLocalMaxima(this->corners, i);
-   //         break;
-   //     }
-  // }
-   
+   this->filterLocalMaxima2(this->corners, 5);
+ 
    //Just to be safe....
-   if(N > this->corners.size())
-        N = this->corners.size();
+  // if(N > this->corners.size())
+    //    N = this->corners.size();
    
    //Global maxima
-   this->sortCorners();    
-   this->corners.erase(this->corners.begin(), this->corners.end() - N);
+  // this->sortCorners();    
+  // this->corners.erase(this->corners.begin(), this->corners.end() - N);
+
     
 }
+
+void OCR::filterEdges(int N)
+{  
+
+
+    this->filterLocalMaxima2(this->edges, 5);
+     
+
+  //Just to be safe....
+  // if(N > this->edges.size())
+  //      N = this->edges.size();
+
+   // this->sortEdges();    
+    //this->edges.erase(this->edges.begin(), this->edges.end() - N);
+    
+}
+
+// Filter based on neighbourhood around pixel
+void OCR::filterLocalMaxima2(std::vector<std::pair<int, double> > &source, int kernelSize)
+{
+
+    int movePositions = kernelSize / 2;
+    std::vector<std::pair<int, double> > filtered;
+    
+    for(int i = 0; i < source.size(); i++)
+    {
+    
+        //Ignore border pixels
+        if( !( source[i].first < this->width * 4 * movePositions) && !(source[i].first > this->size - (this->width * 4 * movePositions)) 
+        &&  !(source[i].first % (4*this->width) < 4 + (4 * (movePositions-1) ) ) && !( source[i].first % (4*this->width) >= (4*this->width - 1) - 4* (movePositions-1))  )
+        {
+            int kernel[kernelSize][kernelSize];
+            double localMaxima = 0.0f;  
+            std::vector<int> maxIndices;
+            // Current
+            int current = source[i].first;
+                                                       
+            kernel[movePositions][movePositions] = current;
+            
+            // Top 
+            int topCounter = 1;
+            while(topCounter <= movePositions)
+            {
+            
+                int top = current + (topCounter * this->width * 4);     
+                
+                kernel[movePositions][movePositions+topCounter] = top;
+                
+                int leftCounter = 1;
+                while(leftCounter <= movePositions) 
+                {
+                    int left = top - leftCounter * 4;
+                                    
+                    kernel[movePositions - leftCounter][movePositions+topCounter] = left;
+                    leftCounter++;
+                }
+                
+                int rightCounter = 1;
+                while(rightCounter <= movePositions) 
+                {
+                    int right = top + rightCounter * 4;    
+                                    
+                    kernel[movePositions + rightCounter][movePositions+topCounter] = right;
+                    rightCounter++;
+                }
+                
+                topCounter++;
+            }
+            
+            // Bottom
+            int bottomCounter = 1;
+            while(bottomCounter <= movePositions)
+            {
+            
+                int bottom = current - (bottomCounter * this->width * 4);
+                kernel[movePositions][movePositions-bottomCounter] = bottom;                         
+                
+                int leftCounter = 1;
+                while(leftCounter <= movePositions) 
+                {
+                    int left = bottom - leftCounter * 4;  
+             
+                    kernel[movePositions - leftCounter][movePositions-bottomCounter] = left;
+                    leftCounter++;
+                }
+                
+                int rightCounter = 1;
+                while(rightCounter <= movePositions) 
+                {
+                    int right = bottom + rightCounter * 4;    
+
+                    kernel[movePositions + rightCounter][movePositions-bottomCounter] = right;
+                    rightCounter++;
+                }
+                
+                bottomCounter++;
+            }
+            
+            //Left
+            int leftCounter = 1;
+            while(leftCounter <= movePositions) 
+            {
+                int left = current - leftCounter * 4;
+                
+                kernel[movePositions - leftCounter][movePositions] = left;
+                leftCounter++;
+            }
+            
+            //Right
+            int rightCounter = 1;
+            while(rightCounter <= movePositions) 
+            {
+                int right = current + rightCounter * 4;
+                 
+                kernel[movePositions + rightCounter][movePositions] = right;
+                rightCounter++;
+            }
+
+            
+            for(int kX = 0; kX < kernelSize; ++kX)
+            {
+                for(int kY = 0; kY < kernelSize; ++kY)
+                {  
+                    if(this->pixelScores[ kernel[kX][kY] ] >= localMaxima)
+                    {
+                        localMaxima = this->pixelScores[ kernel[kX][kY] ];
+                        maxIndices.push_back(kernel[kX][kY]);
+                    }
+                }
+                
+            }
+            
+            for(int x = 0; x < maxIndices.size(); x++)
+            {
+                filtered.push_back(std::make_pair(maxIndices[x], this->pixelScores[maxIndices[x]]));
+            }
+            
+        }
+    }
+    source = filtered;
+}
+
+// Filter based on bins
 
 void OCR::filterLocalMaxima(std::vector<std::pair<int, double> > &source, int kernelSize)
 {
@@ -345,6 +512,9 @@ void OCR::filterLocalMaxima(std::vector<std::pair<int, double> > &source, int ke
         //( int(y / kernel size) * binsPerRow) + int(x / kernel size) = bin index
         int binIndex = ( (y/kernelSize) * binsPerRow ) + ( x/kernelSize );
         // If score of current corner is bigger than the current local maxima of the bin
+        if(binIndex >= numberOfBins)
+            continue;
+            
         if(score > bins[binIndex].second)
         {
             // set new local maxima for this bin
@@ -371,27 +541,7 @@ void OCR::sortCorners()
     this->sort(this->corners); 
 }
 
-void OCR::filterEdges(int N)
-{  
 
- //Local maxima
- /*  for(int i = 9; i > 1; i--)
-   {
-        if(this->width % i == 0 && this->height % i == 0)
-        {
-            this->filterLocalMaxima(this->edges, i);
-            break;
-        }
-   }*/
-
-  //Just to be safe....
-   if(N > this->edges.size())
-        N = this->edges.size();
-
-    this->sortEdges();    
-    this->edges.erase(this->edges.begin(), this->edges.end() - N);
-    
-}
 
 void OCR::sortEdges()
 {     
@@ -540,9 +690,116 @@ void OCR::chessBoardDetection()
     this->cornerDetection();
 
     //Implement Hough transform
-    this->houghTransform();
+    //this->houghTransform();
     
+    // First int is the size of the square, the second is a pair with    the number of squares with this size found  and the edge indices of these squares
+    std::unordered_map<int, std::pair<int, std::vector<int> > > squares;
     //Extract chessboard 
+    for(int i = 3; i < this->size; i+=4)
+    {
+        if(pixelEdges[i] == 0)
+            continue;
+    
+        //Ignore border pixels
+         if(!( i < this->width * 4) && !(i > this->size - (this->width * 4)) 
+         &&  !(i % (4*this->width) == 3) && !((i+1) % (4*this->width) == 0) )
+         {
+            int bottomLeftCorner = 0;                            
+            // Find bottom left corner
+            if(pixelEdges[i] == 1 && pixelEdges[i-4] == 0 && pixelEdges[i - (this->width * 4)] == 0 && pixelEdges[i+4] == 1 && pixelEdges[i + (this->width * 4)] == 1)
+            {
+               
+                //bottom left corner found
+                int squareSize = 1;
+                int currentI = (i + (this->width * 4));
+                bottomLeftCorner = currentI;
+                 
+                while( currentI < this->size && pixelEdges[currentI] == 1) 
+                {
+                    int topLeftCorner = 0;
+                    //top left corner found
+                    if( (currentI +(this->width*4) ) < this->size && pixelEdges[currentI  +(this->width*4) ] == 0 && pixelEdges[currentI - 4 ] == 0 &&  pixelEdges[currentI + 4 ] == 1)
+                    {
+                        topLeftCorner = currentI;
+                        int squareSize2 = 1;
+                        while( currentI < this->size && pixelEdges[currentI] == 1) 
+                        {
+                        
+                            int topRightCorner = 0;
+                            //top right corner found
+                            if( (currentI + 4)  % this->width < (this->width - 1)  && pixelEdges[currentI  + 4 ] == 0 && pixelEdges[currentI +(this->width*4) ] == 0 &&  pixelEdges[currentI -(this->width*4) ] == 1)
+                            {
+                                topRightCorner = currentI;
+                                // Break if not a square by now
+                                if(squareSize != squareSize2)
+                                    break;
+                                    
+                                    int squareSize3 = 1;
+                                    while( currentI > 0 && pixelEdges[currentI] == 1) 
+                                    {
+                                        int bottomRightCorner = 0;
+                                        // Bottom right corner found
+                                         //top right corner found
+                                        if( (currentI -(this->width*4) ) > 0  && pixelEdges[currentI  + 4 ] == 0 && pixelEdges[currentI - 4 ] == 1 &&  pixelEdges[currentI -(this->width*4) ] == 0)
+                                        {
+                                            bottomRightCorner = currentI;
+                                            // Break if not a square by now
+                                            if(squareSize != squareSize3)
+                                                break;
+                                                
+                                            if(bottomRightCorner - squareSize*4 == bottomLeftCorner)
+                                            {
+                                                // Found a square with size squareSize
+                                                std::vector<int> corners;
+                                                corners.push_back(bottomLeftCorner);
+                                                corners.push_back(topLeftCorner);
+                                                corners.push_back(topRightCorner);
+                                                corners.push_back(bottomRightCorner);
+                                                
+                                                if(squares[squareSize].first == NULL)
+                                                    squares[squareSize] = make_pair(1, corners);
+                                                else
+                                                    squares[squareSize].first++;
+                                                    
+                                                Log::getInstance().debug("Square Found... count is..");
+                                                Log::getInstance().debug(squares[squareSize].first);
+                                            }
+                                            
+                                        }
+                                        
+                                        currentI -= (this->width * 4);
+                                        squareSize3++;
+                                    }
+                                
+                                
+                            }
+                            currentI += 4;
+                            squareSize2++;
+                        }
+                    }
+                    
+                    currentI += (this->width * 4);
+                    squareSize++;
+                }
+                
+            }
+        }
+    }
+    
+     for ( auto it = squares.begin(); it != squares.end(); ++it )
+     {
+        if(it->second.first == 64)
+        {
+            for(int sqI = 0; sqI < it->second.second.size(); sqI++)
+            {
+                this->pixels[ it->second.second[sqI] -1 ] = 0.0f;
+                this->pixels[ it->second.second[sqI] -2 ] = 255.0f;
+                this->pixels[ it->second.second[sqI] -3 ] = 0.0f;
+            }
+        
+        }
+        
+     }
 
 }
 
@@ -551,7 +808,7 @@ void OCR::houghTransform()
     // Get only horizontal and vertical thetas
     int thetaSpace[2];
     thetaSpace[0] = 0;
-    thetaSpace[0] = 90;
+    thetaSpace[1] = 90;
     
     int rSpace = sqrt(this->width*this->width + this->height*this->height);
 
@@ -559,7 +816,8 @@ void OCR::houghTransform()
     // The value of theta and r is a pair of (int) vector of indices and (int) accumulatorValue
     std::vector< std::vector<std::pair<std::vector<int>, int> > > accumulator;
     
-    std::unordered_map<int, std::pair<int, int> > cornerToRAndTheta;
+    // First element of the vector would be the r for theta = 0, second for theta = 1
+    std::unordered_map<int, std::vector<int> > cornerToRAndTheta;
     
     for(int theta = 0; theta < 2; theta++)
     {
@@ -578,6 +836,8 @@ void OCR::houghTransform()
         int x = index % (this->width);
         int y = index / (this->width * 4);
         
+        std::vector<int> mapVec;
+        cornerToRAndTheta[index] = mapVec;
         // Transform to polar coordinates
         // For every value of theta, calculate r for this x and y and increment the accumulator
         for(int theta = 0; theta < 2; theta++)
@@ -586,50 +846,15 @@ void OCR::houghTransform()
            
             accumulator[theta][r].second += 1;
             accumulator[theta][r].first.push_back(index);
-            cornerToRAndTheta[index] = std::make_pair(r, theta);
+            // First, the r for theta = 0 will be pushed back, then for theta = 1
+            cornerToRAndTheta[index].push_back(r);
         }
         
     }
     
-    int kernelSize = 7;
-    for(int theta = 0; theta < 2; theta++)
-    { 
-       for(int r = 0; r < rSpace; r+=7)
-        {
-           // Vertical lines are first, then horizontal
-           
-           
-            //if(accumulator[theta][maxR].second > 7 && accumulator[theta][maxR].second < 50)
-           // {
-                for(int j = 0; j < accumulator[theta][r].first.size(); j++)
-                {
-                    
-                    // All corners which lie on either a horizontal or vertical line
-                    // when theta = 0, corners lie on a vertical line
-                    // when theta = 1, corners lie on a horizontal line
-                    
-                    // Look for squares in this sequence:
-                    //  1) Bottom left corner
-                    //  2) Top left corner
-                    //  3) Top right corner
-                    //  4) Bottom right corner
-                    //  5) Bottom left corner
-                    // If difference in r (vertical and horizontal) between these is the same -> square
-                    
-                   // cornerToRAndTheta[ [accumulator[theta][r].first[j] ] ].first //r
-                   //  cornerToRAndTheta[ [accumulator[theta][r].first[j] ] ].second //theta
-                    
-                    //B
-                    this->pixels[accumulator[theta][r].first[j] - 3] = 0.0f;
-                    //G
-                    this->pixels[accumulator[theta][r].first[j] - 2] = 255.0f;
-                    //R
-                    this->pixels[accumulator[theta][r].first[j] - 1] = 0.0f;
-                }
-                
-           // }
-        }
-    }
+ 
+ 
+    
 
     
     

@@ -18,7 +18,8 @@ private:
     std::vector<std::pair<int, double> > corners;
     // Vector with pairs: <index, score> of an edge
     std::vector<std::pair<int, double> > edges;
-    
+    double *pixelScores;
+    int *pixelEdges;
     
     void whitenImage();
     void filterCorners(int N);
@@ -27,6 +28,8 @@ private:
     
     void filterEdges(int N);
 	void filterLocalMaxima(std::vector<std::pair<int, double> > &source, int kernelSize);
+	void filterLocalMaxima2(std::vector<std::pair<int, double> > &source, int kernelSize);
+    
     void sortEdges();
     void displayEdges();
 
@@ -40,6 +43,8 @@ public:
     {
         horizontalDerivatives = NULL;
         verticalDerivatives = NULL;
+        pixelScores = NULL;
+        pixelEdges = NULL;
     };
     ~OCR();
     void cornerDetection();
