@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #define PI 3.14159265
+#define euler 2.71828182846
 
 class OCR: public BmpImage
 {
@@ -36,6 +37,9 @@ private:
     void sort(std::vector<std::pair<int, double> > &v1);
     void merge(std::vector<std::pair<int, double> > &source, std::vector<std::pair<int, double> > &v1, std::vector<std::pair<int, double> > &v2);
     void dilate();
+	
+	double calculateGaussianKernel(int x, int y, double sigma);
+	
     
     void houghTransform();
 public:

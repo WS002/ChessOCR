@@ -27,6 +27,11 @@ OCR::~OCR()
     }
 }
 
+double OCR::calculateGaussianKernel(int x, int y, double sigma)
+{
+	return (1/2*sigma*sigma*PI)*euler-((x*x + y*y)/2*sigma*sigma);
+}
+
 void OCR::cornerDetection()
 {
  // Harris corner detection
@@ -52,7 +57,7 @@ void OCR::cornerDetection()
     this->saveVerticalBMP(verticalImagePath);
     
     double maxScore = 0.0f;
-    int kernelSize = 11;
+    int kernelSize = 3;
     int movePositions = kernelSize / 2;
     
     this->pixelScores = new double[this->size];
@@ -62,6 +67,8 @@ void OCR::cornerDetection()
     for(int pE = 0; pE < this->size; pE++)
         this->pixelEdges[pE] = 0;
 
+	double sigma = 0.2f;
+	
 // define gaussian kernel and the structure tensor matrix    
     for(int i = 3; i < this->size; i += 4)
     {   
@@ -73,12 +80,13 @@ void OCR::cornerDetection()
         
             double tensorMatrix[2][2];
             int kernel[kernelSize][kernelSize];
+			double gaussian[kernelSize][kernelSize];
                         
             // Current
             int current = i - 1;
                                                        
             kernel[movePositions][movePositions] = current;
-            
+            gaussian[movePositions][movePositions] = this->calculateGaussianKernel(0,0,sigma);
             // Top 
             int topCounter = 1;
             while(topCounter <= movePositions)
@@ -87,13 +95,15 @@ void OCR::cornerDetection()
                 int top = current + (topCounter * this->width * 4);     
                 
                 kernel[movePositions][movePositions+topCounter] = top;
-                
+                gaussian[movePositions][movePositions+topCounter] = this->calculateGaussianKernel(0,topCounter,sigma);
+				
                 int leftCounter = 1;
                 while(leftCounter <= movePositions) 
                 {
                     int left = top - leftCounter * 4;
                                     
                     kernel[movePositions - leftCounter][movePositions+topCounter] = left;
+					gaussian[movePositions - leftCounter][movePositions+topCounter] =  this->calculateGaussianKernel(leftCounter,topCounter,sigma);
                     leftCounter++;
                 }
                 
@@ -103,6 +113,7 @@ void OCR::cornerDetection()
                     int right = top + rightCounter * 4;    
                                     
                     kernel[movePositions + rightCounter][movePositions+topCounter] = right;
+					gaussian[movePositions + rightCounter][movePositions+topCounter] = this->calculateGaussianKernel(rightCounter,topCounter,sigma);
                     rightCounter++;
                 }
                 
@@ -116,13 +127,16 @@ void OCR::cornerDetection()
             
                 int bottom = current - (bottomCounter * this->width * 4);
                 kernel[movePositions][movePositions-bottomCounter] = bottom;                         
-                
+                gaussian[movePositions][movePositions-bottomCounter] = this->calculateGaussianKernel(0,bottomCounter,sigma);
+				
                 int leftCounter = 1;
                 while(leftCounter <= movePositions) 
                 {
                     int left = bottom - leftCounter * 4;  
              
                     kernel[movePositions - leftCounter][movePositions-bottomCounter] = left;
+					gaussian[movePositions - leftCounter][movePositions-bottomCounter] = this->calculateGaussianKernel(leftCounter,bottomCounter,sigma);
+					
                     leftCounter++;
                 }
                 
@@ -132,6 +146,8 @@ void OCR::cornerDetection()
                     int right = bottom + rightCounter * 4;    
 
                     kernel[movePositions + rightCounter][movePositions-bottomCounter] = right;
+					gaussian[movePositions + rightCounter][movePositions-bottomCounter] = this->calculateGaussianKernel(rightCounter,bottomCounter,sigma);
+					
                     rightCounter++;
                 }
                 
@@ -145,6 +161,7 @@ void OCR::cornerDetection()
                 int left = current - leftCounter * 4;
                 
                 kernel[movePositions - leftCounter][movePositions] = left;
+				gaussian[movePositions - leftCounter][movePositions] = this->calculateGaussianKernel(leftCounter,0,sigma);
                 leftCounter++;
             }
             
@@ -155,6 +172,7 @@ void OCR::cornerDetection()
                 int right = current + rightCounter * 4;
                  
                 kernel[movePositions + rightCounter][movePositions] = right;
+				gaussian[movePositions + rightCounter][movePositions] = this->calculateGaussianKernel(rightCounter,0,sigma);
                 rightCounter++;
             }
 
@@ -172,10 +190,9 @@ void OCR::cornerDetection()
             {
                 for(int kY = 0; kY < kernelSize; ++kY)
                 {                     
-                    //TODO: Gaussian ?
-                    xDiff += ((double)this->horizontalDerivatives[kernel[kX][kY]] * (double)this->horizontalDerivatives[kernel[kX][kY]]);
-                    yDiff += ((double)this->verticalDerivatives[kernel[kX][kY]] * (double)this->verticalDerivatives[kernel[kX][kY]]);
-                    xyDiff +=((double)this->verticalDerivatives[kernel[kX][kY]] * (double)this->horizontalDerivatives[kernel[kX][kY]]);
+                    xDiff += ((double)this->horizontalDerivatives[kernel[kX][kY]] * (double)this->horizontalDerivatives[kernel[kX][kY]] * gaussian[kX][kY] );
+                    yDiff += ((double)this->verticalDerivatives[kernel[kX][kY]] * (double)this->verticalDerivatives[kernel[kX][kY]] * gaussian[kX][kY] );
+                    xyDiff +=((double)this->verticalDerivatives[kernel[kX][kY]] * (double)this->horizontalDerivatives[kernel[kX][kY]] * gaussian[kX][kY] );
                 }
             }
 
@@ -221,7 +238,7 @@ void OCR::cornerDetection()
     this->filterEdges(edgeThreshold);
     for(int edge = 0; edge < this->edges.size(); edge++)
     {
-        this->pixelEdges[edge] = 1;
+        this->pixelEdges[this->edges[edge].first] = 1;
     }
     
     this->displayEdges();
@@ -342,7 +359,7 @@ void OCR::filterEdges(int N)
 {  
 
 
-    this->filterLocalMaxima2(this->edges, 5);
+    this->filterLocalMaxima2(this->edges, 9);
      
 
   //Just to be safe....
@@ -691,14 +708,13 @@ void OCR::chessBoardDetection()
 
     //Implement Hough transform
     //this->houghTransform();
-    
     // First int is the size of the square, the second is a pair with    the number of squares with this size found  and the edge indices of these squares
     std::unordered_map<int, std::pair<int, std::vector<int> > > squares;
     //Extract chessboard 
     for(int i = 3; i < this->size; i+=4)
     {
         if(pixelEdges[i] == 0)
-            continue;
+            continue;		
     
         //Ignore border pixels
          if(!( i < this->width * 4) && !(i > this->size - (this->width * 4)) 
@@ -709,11 +725,12 @@ void OCR::chessBoardDetection()
             if(pixelEdges[i] == 1 && pixelEdges[i-4] == 0 && pixelEdges[i - (this->width * 4)] == 0 && pixelEdges[i+4] == 1 && pixelEdges[i + (this->width * 4)] == 1)
             {
                
+			   
                 //bottom left corner found
                 int squareSize = 1;
                 int currentI = (i + (this->width * 4));
                 bottomLeftCorner = currentI;
-                 
+			
                 while( currentI < this->size && pixelEdges[currentI] == 1) 
                 {
                     int topLeftCorner = 0;
@@ -722,13 +739,21 @@ void OCR::chessBoardDetection()
                     {
                         topLeftCorner = currentI;
                         int squareSize2 = 1;
+						
+					
                         while( currentI < this->size && pixelEdges[currentI] == 1) 
                         {
-                        
+							if(squareSize2 > squareSize)
+								break;
+										this->pixels[currentI - 1] = 0.0f;
+						this->pixels[currentI - 2] = 255.0f;
+						this->pixels[currentI - 3] = 0.0f;
                             int topRightCorner = 0;
                             //top right corner found
                             if( (currentI + 4)  % this->width < (this->width - 1)  && pixelEdges[currentI  + 4 ] == 0 && pixelEdges[currentI +(this->width*4) ] == 0 &&  pixelEdges[currentI -(this->width*4) ] == 1)
                             {
+														
+			
                                 topRightCorner = currentI;
                                 // Break if not a square by now
                                 if(squareSize != squareSize2)
@@ -737,6 +762,8 @@ void OCR::chessBoardDetection()
                                     int squareSize3 = 1;
                                     while( currentI > 0 && pixelEdges[currentI] == 1) 
                                     {
+										if(squareSize3 > squareSize)
+											break;
                                         int bottomRightCorner = 0;
                                         // Bottom right corner found
                                          //top right corner found
@@ -777,7 +804,7 @@ void OCR::chessBoardDetection()
                             squareSize2++;
                         }
                     }
-                    
+                   
                     currentI += (this->width * 4);
                     squareSize++;
                 }
