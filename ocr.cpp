@@ -57,7 +57,7 @@ void OCR::cornerDetection()
     this->saveVerticalBMP(verticalImagePath);
     
     double maxScore = 0.0f;
-    int kernelSize = 3;
+    int kernelSize = 1;
     int movePositions = kernelSize / 2;
     
     this->pixelScores = new double[this->size];
@@ -190,9 +190,9 @@ void OCR::cornerDetection()
             {
                 for(int kY = 0; kY < kernelSize; ++kY)
                 {                     
-                    xDiff += ((double)this->horizontalDerivatives[kernel[kX][kY]] * (double)this->horizontalDerivatives[kernel[kX][kY]] * gaussian[kX][kY] );
-                    yDiff += ((double)this->verticalDerivatives[kernel[kX][kY]] * (double)this->verticalDerivatives[kernel[kX][kY]] * gaussian[kX][kY] );
-                    xyDiff +=((double)this->verticalDerivatives[kernel[kX][kY]] * (double)this->horizontalDerivatives[kernel[kX][kY]] * gaussian[kX][kY] );
+                    xDiff += ((double)this->horizontalDerivatives[kernel[kX][kY]] * (double)this->horizontalDerivatives[kernel[kX][kY]]); //* gaussian[kX][kY] );
+                    yDiff += ((double)this->verticalDerivatives[kernel[kX][kY]] * (double)this->verticalDerivatives[kernel[kX][kY]]); //* gaussian[kX][kY] );
+                    xyDiff +=((double)this->verticalDerivatives[kernel[kX][kY]] * (double)this->horizontalDerivatives[kernel[kX][kY]]); //* gaussian[kX][kY] );
                 }
             }
 
@@ -359,7 +359,7 @@ void OCR::filterEdges(int N)
 {  
 
 
-    this->filterLocalMaxima2(this->edges, 9);
+    this->filterLocalMaxima2(this->edges, 3);
      
 
   //Just to be safe....
