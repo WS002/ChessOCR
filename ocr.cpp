@@ -701,6 +701,36 @@ void OCR::computeHorizontalDerivatives()
     
 }
 
+/* return pair with possible directions if a square corner, else return (0, 0)
+* (1, 1) +x, +y ( bottom left corner )
+* (1, -1) +x, -y (top left corner )
+* (-1, -1) -x, -y (top right corner )
+* (-1, 1) -x, +y (bottom right corner)
+*/
+std::pair<int, int> OCR::isASquareCorner(int i)
+{
+    //If out of bounds
+    if( (i-4) > (this->size - 1) || (i+4) > (this->size - 1) || i - (this->width * 4) > (this->size - 1) || i + (this->width * 4) > (this->size - 1) )
+        return std::make_pair(0, 0);
+        
+    //bottom left corner
+    if(pixelEdges[i] == 1 && pixelEdges[i-4] == 0 && pixelEdges[i - (this->width * 4)] == 0 && pixelEdges[i+4] == 1 && pixelEdges[i + (this->width * 4)] == 1)
+        return std::make_pair(1, 1);
+    
+    //top left corner
+    if( pixelEdges[i  -(this->width*4) ] == 1 && pixelEdges[i  +(this->width*4) ] == 0 && pixelEdges[i - 4 ] == 0 &&  pixelEdges[i + 4 ] == 1)
+        return std::make_pair(1, -1);
+        
+    //top right corner
+    if( pixelEdges[i  -(this->width*4) ] == 1 && pixelEdges[i  +(this->width*4) ] == 0 && pixelEdges[i - 4 ] == 1 &&  pixelEdges[i + 4 ] == 0)
+        return std::make_pair(-1, -1);
+        
+    //bottom right corner
+    if( pixelEdges[i  -(this->width*4) ] == 0 && pixelEdges[i  +(this->width*4) ] == 1 && pixelEdges[i - 4 ] == 1 &&  pixelEdges[i + 4 ] == 0)
+        return std::make_pair(-1, -1);
+        
+    return std::make_pair(0, 0);
+}
 
 void OCR::chessBoardDetection()
 { 
@@ -710,118 +740,194 @@ void OCR::chessBoardDetection()
     //this->houghTransform();
     // First int is the size of the square, the second is a pair with    the number of squares with this size found  and the edge indices of these squares
     std::unordered_map<int, std::pair<int, std::vector<int> > > squares;
+    
+    // Loose the constraints a bit.... 3 equally spaced neighbour corners should be enough to form a square.... extract 64 squares close to each other, based on size
     //Extract chessboard 
     for(int i = 3; i < this->size; i+=4)
     {
-        if(pixelEdges[i] == 0)
-            continue;		
-    
         //Ignore border pixels
-         if(!( i < this->width * 4) && !(i > this->size - (this->width * 4)) 
-         &&  !(i % (4*this->width) == 3) && !((i+1) % (4*this->width) == 0) )
-         {
-            int bottomLeftCorner = 0;                            
-            // Find bottom left corner
-            if(pixelEdges[i] == 1 && pixelEdges[i-4] == 0 && pixelEdges[i - (this->width * 4)] == 0 && pixelEdges[i+4] == 1 && pixelEdges[i + (this->width * 4)] == 1)
+        if(!( i < this->width * 4) && !(i > this->size - (this->width * 4)) 
+        &&  !(i % (4*this->width) == 3) && !((i+1) % (4*this->width) == 0) )
+        {
+    
+            std::pair<int,int> squareCornerDirections;
+            squareCornerDirections = isASquareCorner(i);
+            if(squareCornerDirections.first == 0)
+                continue;
+            
+            int xDirection = (4 * squareCornerDirections.first);
+            int yDirection = (this->width*4 * squareCornerDirections.second);
+            
+           
+            
+            // Check the x and y direction for possible square corners
+            int currentX = i + xDirection;
+            int sizeX = 1;
+            while(currentX < this->size && pixelEdges[currentX] == 1)
             {
-               
-			   
-                //bottom left corner found
-                int squareSize = 1;
-                int currentI = (i + (this->width * 4));
-                bottomLeftCorner = currentI;
-			
-                while( currentI < this->size && pixelEdges[currentI] == 1) 
+                                                  
+                std::pair<int,int> xCornerDirections;
+                xCornerDirections = isASquareCorner(currentX);
+                if(xCornerDirections.first != 0)
                 {
-                    int topLeftCorner = 0;
-                    //top left corner found
-                    if( (currentI +(this->width*4) ) < this->size && pixelEdges[currentI  +(this->width*4) ] == 0 && pixelEdges[currentI - 4 ] == 0 &&  pixelEdges[currentI + 4 ] == 1)
+                    //Found another corner
+                                                 
+                    int currentYDir = this->width*4 * xCornerDirections.second; 
+                    
+                                      
+                    // + - looseDifference
+                    int looseDifference = 5;
+                    int looseDiffCount = 0;
+                    while(looseDiffCount <= looseDifference)
                     {
-                        topLeftCorner = currentI;
-                        int squareSize2 = 1;
-						
-					
-                        while( currentI < this->size && pixelEdges[currentI] == 1) 
+                         //Loose up a bit on the perfect square size constraint
+                        if( (currentX + (sizeX * currentYDir) ) + looseDiffCount*currentYDir < this->size && isASquareCorner( (currentX + (sizeX * currentYDir) ) + looseDiffCount*currentYDir ).first != 0)
                         {
-							if(squareSize2 > squareSize)
-								break;
-										this->pixels[currentI - 1] = 0.0f;
-						this->pixels[currentI - 2] = 255.0f;
-						this->pixels[currentI - 3] = 0.0f;
-                            int topRightCorner = 0;
-                            //top right corner found
-                            if( (currentI + 4)  % this->width < (this->width - 1)  && pixelEdges[currentI  + 4 ] == 0 && pixelEdges[currentI +(this->width*4) ] == 0 &&  pixelEdges[currentI -(this->width*4) ] == 1)
-                            {
-														
-			
-                                topRightCorner = currentI;
-                                // Break if not a square by now
-                                if(squareSize != squareSize2)
-                                    break;
-                                    
-                                    int squareSize3 = 1;
-                                    while( currentI > 0 && pixelEdges[currentI] == 1) 
-                                    {
-										if(squareSize3 > squareSize)
-											break;
-                                        int bottomRightCorner = 0;
-                                        // Bottom right corner found
-                                         //top right corner found
-                                        if( (currentI -(this->width*4) ) > 0  && pixelEdges[currentI  + 4 ] == 0 && pixelEdges[currentI - 4 ] == 1 &&  pixelEdges[currentI -(this->width*4) ] == 0)
-                                        {
-                                            bottomRightCorner = currentI;
-                                            // Break if not a square by now
-                                            if(squareSize != squareSize3)
-                                                break;
-                                                
-                                            if(bottomRightCorner - squareSize*4 == bottomLeftCorner)
-                                            {
-                                                // Found a square with size squareSize
-                                                std::vector<int> corners;
-                                                corners.push_back(bottomLeftCorner);
-                                                corners.push_back(topLeftCorner);
-                                                corners.push_back(topRightCorner);
-                                                corners.push_back(bottomRightCorner);
-                                                
-                                                if(squares[squareSize].first == NULL)
-                                                    squares[squareSize] = make_pair(1, corners);
-                                                else
-                                                    squares[squareSize].first++;
-                                                    
-                                                Log::getInstance().debug("Square Found... count is..");
-                                                Log::getInstance().debug(squares[squareSize].first);
-                                            }
-                                            
-                                        }
-                                        
-                                        currentI -= (this->width * 4);
-                                        squareSize3++;
-                                    }
+                            //Found third corner in the y direction => According to the loosened up constraints, this is a square => Found a square of size +- sizeX
+
+                            std::vector<int> corners;
+                          
+                            int thirdCorner = (currentX + (sizeX * currentYDir) ) + looseDiffCount*currentYDir;                            
+                            int fourthCorner = ( thirdCorner + (sizeX * isASquareCorner(thirdCorner).first) ) + looseDiffCount*currentYDir;
+                            if(fourthCorner > this->size)
+                                break;
                                 
-                                
-                            }
-                            currentI += 4;
-                            squareSize2++;
-                        }
+                            corners.push_back(i);
+                            corners.push_back(currentX);
+                            corners.push_back(thirdCorner);
+                            corners.push_back(fourthCorner);                           
+                            
+                            
+                            
+                            this->pixels[i - 1] = 0.0f;
+                            this->pixels[i - 2] = 255.0f;
+                            this->pixels[i - 3] = 0.0f;
+                            
+                            this->pixels[currentX - 1] = 0.0f;
+                            this->pixels[currentX - 2] = 255.0f;
+                            this->pixels[currentX - 3] = 0.0f;
+                            
+                            this->pixels[thirdCorner - 1] = 0.0f;
+                            this->pixels[thirdCorner - 2] = 255.0f;
+                            this->pixels[thirdCorner - 3] = 0.0f;    
+                            
+                            this->pixels[fourthCorner - 1] = 0.0f;
+                            this->pixels[fourthCorner - 2] = 255.0f;
+                            this->pixels[fourthCorner - 3] = 0.0f;
+                            
+                            
+                            
+                            if(squares[sizeX].first == NULL)
+                                squares[sizeX] = make_pair(1, corners);
+                            else
+                                squares[sizeX].first++;
+                            
+                            break;
+                        }                    
+                        looseDiffCount++;
                     }
                    
-                    currentI += (this->width * 4);
-                    squareSize++;
+                
                 }
                 
+                currentX += xDirection;
+                sizeX++;
             }
+            
+            
+            // Search in vertical direction
+            int sizeY = 1;
+            int currentY = i + yDirection;
+            while( currentY < this->size && pixelEdges[currentY] == 1)
+            {
+            
+                std::pair<int,int> yCornerDirections;
+                yCornerDirections = isASquareCorner(currentY);
+                if(yCornerDirections.first != 0)
+                {
+                    //Found another corner
+                    
+                    int currentXDir = this->width*4 * yCornerDirections.first; 
+
+                    // + - looseDifference
+                    int looseDifference = 5;
+                    int looseDiffCount = 0;
+                    while(looseDiffCount <= looseDifference)
+                    {
+                    
+                       
+                         //Loose up a bit on the perfect square size constraint
+                        if( (currentY + (sizeY * currentXDir) ) + currentXDir*looseDiffCount < this->size && isASquareCorner( (currentY + (sizeY * currentXDir) ) + currentXDir*looseDiffCount ).second != 0)
+                        {
+                            //Found third corner in the y direction => According to the loosened up constraints, this is a square => Found a square of size +- sizeX                           
+                           
+                            
+                            int thirdCorner = (currentY + (sizeY * currentXDir) ) + currentXDir*looseDiffCount;
+                            int fourthCorner = (thirdCorner + (sizeY * isASquareCorner(thirdCorner).second) ) + currentXDir*looseDiffCount;
+                            if(fourthCorner > this->size)
+                                break;
+                                
+                            std::vector<int> corners;
+                            corners.push_back(i);
+                            corners.push_back(currentY);
+                            corners.push_back(thirdCorner);
+                            corners.push_back(fourthCorner);        
+
+                            
+                            this->pixels[i - 1] = 0.0f;
+                            this->pixels[i - 2] = 255.0f;
+                            this->pixels[i - 3] = 0.0f;
+                            
+                            this->pixels[currentY - 1] = 0.0f;
+                            this->pixels[currentY - 2] = 255.0f;
+                            this->pixels[currentY - 3] = 0.0f;
+                            
+                            this->pixels[thirdCorner - 1] = 0.0f;
+                            this->pixels[thirdCorner - 2] = 255.0f;
+                            this->pixels[thirdCorner - 3] = 0.0f;    
+                            
+                            this->pixels[fourthCorner - 1] = 0.0f;
+                            this->pixels[fourthCorner - 2] = 255.0f;
+                            this->pixels[fourthCorner - 3] = 0.0f;
+                            
+                            
+                            if(squares[sizeY].first == NULL)
+                                squares[sizeY] = make_pair(1, corners);
+                            else
+                                squares[sizeY].first++;
+                            
+                            break;
+                        }                    
+                        looseDiffCount++;
+                    }
+                   
+                
+                }
+            
+            
+            
+                currentY += yDirection;
+                sizeY++;
+            }
+            
+       
+       
         }
-    }
+       
+    }       
     
      for ( auto it = squares.begin(); it != squares.end(); ++it )
      {
-        if(it->second.first == 64)
+         Log::getInstance().debug(it->second.first);
+        // Loose up a bit the constraint on the number of squares to search for, between 55 and 64
+        if(it->second.first > 50 && it->second.first < 70)
         {
+           
             for(int sqI = 0; sqI < it->second.second.size(); sqI++)
             {
-                this->pixels[ it->second.second[sqI] -1 ] = 0.0f;
-                this->pixels[ it->second.second[sqI] -2 ] = 255.0f;
-                this->pixels[ it->second.second[sqI] -3 ] = 0.0f;
+               // this->pixels[ it->second.second[sqI] -1 ] = 0.0f;
+               // this->pixels[ it->second.second[sqI] -2 ] = 255.0f;
+               // this->pixels[ it->second.second[sqI] -3 ] = 0.0f;
             }
         
         }

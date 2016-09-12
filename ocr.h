@@ -39,7 +39,9 @@ private:
     void dilate();
 	
 	double calculateGaussianKernel(int x, int y, double sigma);
-	
+    
+    //If it is a square corner, return possible directions
+	std::pair<int, int> isASquareCorner(int i);
     
     void houghTransform();
 public:
