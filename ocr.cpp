@@ -777,7 +777,7 @@ void OCR::chessBoardDetection()
                                       
                     // + - looseDifference
                     int looseDifference = 5;
-                    int looseDiffCount = 0;
+                    int looseDiffCount = -looseDifference;
                     while(looseDiffCount <= looseDifference)
                     {
                          //Loose up a bit on the perfect square size constraint
@@ -851,7 +851,7 @@ void OCR::chessBoardDetection()
 
                     // + - looseDifference
                     int looseDifference = 5;
-                    int looseDiffCount = 0;
+                    int looseDiffCount = -looseDifference;
                     while(looseDiffCount <= looseDifference)
                     {
                     
