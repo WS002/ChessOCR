@@ -752,7 +752,7 @@ void OCR::chessBoardDetection()
     
             std::pair<int,int> squareCornerDirections;
             squareCornerDirections = isASquareCorner(i);
-            if(squareCornerDirections.first == 0)
+            if(squareCornerDirections.first != 1 && squareCornerDirections.second != 1)
                 continue;
             
             int xDirection = (4 * squareCornerDirections.first);
@@ -768,38 +768,39 @@ void OCR::chessBoardDetection()
                                                   
                 std::pair<int,int> xCornerDirections;
                 xCornerDirections = isASquareCorner(currentX);
-                if(xCornerDirections.first != 0)
+                if(xCornerDirections.first != 0 && sizeX > 8)
                 {
                     //Found another corner
                                                  
                     int currentYDir = this->width*4 * xCornerDirections.second; 
-                    
-                                      
+                    int currentY = currentX + currentYDir;
+                    while(currentY < this->size && pixelEdges[currentY] == 1)
+                    {
+                        currentY += currentYDir;
+                    }
+                    currentY -= currentYDir;
+                     
                     // + - looseDifference
                     int looseDifference = 5;
                     int looseDiffCount = -looseDifference;
                     while(looseDiffCount <= looseDifference)
                     {
                          //Loose up a bit on the perfect square size constraint
-                        if( (currentX + (sizeX * currentYDir) ) + looseDiffCount*currentYDir < this->size && isASquareCorner( (currentX + (sizeX * currentYDir) ) + looseDiffCount*currentYDir ).first != 0)
+                        if( currentY + looseDiffCount*currentYDir < this->size && isASquareCorner( currentY + looseDiffCount*currentYDir ).first != 0)
                         {
                             //Found third corner in the y direction => According to the loosened up constraints, this is a square => Found a square of size +- sizeX
 
-                            std::vector<int> corners;
+                           
                           
-                            int thirdCorner = (currentX + (sizeX * currentYDir) ) + looseDiffCount*currentYDir;                            
-                            int fourthCorner = ( thirdCorner + (sizeX * isASquareCorner(thirdCorner).first) ) + looseDiffCount*currentYDir;
+                            int thirdCorner = currentY + looseDiffCount*currentYDir;                            
+                            int fourthCorner = ( thirdCorner + (sizeX * isASquareCorner(thirdCorner).first * 4) ) + looseDiffCount*isASquareCorner(thirdCorner).first*4;
                             if(fourthCorner > this->size)
                                 break;
                                 
-                            corners.push_back(i);
-                            corners.push_back(currentX);
-                            corners.push_back(thirdCorner);
-                            corners.push_back(fourthCorner);                           
+                         
                             
                             
-                            
-                            this->pixels[i - 1] = 0.0f;
+                            /*this->pixels[i - 1] = 0.0f;
                             this->pixels[i - 2] = 255.0f;
                             this->pixels[i - 3] = 0.0f;
                             
@@ -815,13 +816,39 @@ void OCR::chessBoardDetection()
                             this->pixels[fourthCorner - 2] = 255.0f;
                             this->pixels[fourthCorner - 3] = 0.0f;
                             
-                            
+                           */ 
                             
                             if(squares[sizeX].first == NULL)
-                                squares[sizeX] = make_pair(1, corners);
-                            else
-                                squares[sizeX].first++;
+                            {
+                                std::vector<int> corners;
+                                corners.push_back(i);
+                                corners.push_back(currentX);
+                                corners.push_back(thirdCorner);
+                                corners.push_back(fourthCorner);                           
                             
+                                squares[sizeX] = make_pair(1, corners);
+                                
+                            }
+                            else
+                            {
+                               
+                               // int found = 0;
+                              //  for(int corner = 0; corner < squares[sizeX].second.size(); corner++)
+                              //  {
+                                  //  if(squares[sizeX].second[corner] == i || squares[sizeX].second[corner] == currentX || 
+                                   //    squares[sizeX].second[corner] == thirdCorner || squares[sizeX].second[corner] == fourthCorner)
+                                   //     found++;
+                             //   }
+                                
+                               // if(found < 4) 
+                              // {
+                                     squares[sizeX].first++;
+                                     squares[sizeX].second.push_back(i);
+                                     squares[sizeX].second.push_back(currentX);
+                                     squares[sizeX].second.push_back(thirdCorner);
+                                     squares[sizeX].second.push_back(fourthCorner);
+                             //   }
+                            }
                             break;
                         }                    
                         looseDiffCount++;
@@ -835,7 +862,7 @@ void OCR::chessBoardDetection()
             }
             
             
-            // Search in vertical direction
+         /*   // Search in vertical direction
             int sizeY = 1;
             int currentY = i + yDirection;
             while( currentY < this->size && pixelEdges[currentY] == 1)
@@ -847,8 +874,15 @@ void OCR::chessBoardDetection()
                 {
                     //Found another corner
                     
-                    int currentXDir = this->width*4 * yCornerDirections.first; 
-
+                    int currentXDir = 4 * yCornerDirections.first; 
+                    int currentX = currentY + currentXDir;
+                    while(currentX < this->size && pixelEdges[currentX] == 1)
+                    {
+                        currentX += currentXDir;
+                    }
+                    currentX -= currentXDir;
+                    
+                    
                     // + - looseDifference
                     int looseDifference = 5;
                     int looseDiffCount = -looseDifference;
@@ -857,45 +891,50 @@ void OCR::chessBoardDetection()
                     
                        
                          //Loose up a bit on the perfect square size constraint
-                        if( (currentY + (sizeY * currentXDir) ) + currentXDir*looseDiffCount < this->size && isASquareCorner( (currentY + (sizeY * currentXDir) ) + currentXDir*looseDiffCount ).second != 0)
+                        if( currentX + currentXDir*looseDiffCount < this->size && isASquareCorner( currentX + currentXDir*looseDiffCount ).first != 0)
                         {
                             //Found third corner in the y direction => According to the loosened up constraints, this is a square => Found a square of size +- sizeX                           
                            
+                           
                             
-                            int thirdCorner = (currentY + (sizeY * currentXDir) ) + currentXDir*looseDiffCount;
-                            int fourthCorner = (thirdCorner + (sizeY * isASquareCorner(thirdCorner).second) ) + currentXDir*looseDiffCount;
+                            int thirdCorner = currentX + currentXDir*looseDiffCount;
+                            int fourthCorner = (thirdCorner + (sizeY * isASquareCorner(thirdCorner).second*4*this->width) ) + isASquareCorner(thirdCorner).second*4*this->width*looseDiffCount;
                             if(fourthCorner > this->size)
                                 break;
                                 
-                            std::vector<int> corners;
-                            corners.push_back(i);
-                            corners.push_back(currentY);
-                            corners.push_back(thirdCorner);
-                            corners.push_back(fourthCorner);        
-
-                            
-                            this->pixels[i - 1] = 0.0f;
-                            this->pixels[i - 2] = 255.0f;
-                            this->pixels[i - 3] = 0.0f;
-                            
-                            this->pixels[currentY - 1] = 0.0f;
-                            this->pixels[currentY - 2] = 255.0f;
-                            this->pixels[currentY - 3] = 0.0f;
-                            
-                            this->pixels[thirdCorner - 1] = 0.0f;
-                            this->pixels[thirdCorner - 2] = 255.0f;
-                            this->pixels[thirdCorner - 3] = 0.0f;    
-                            
-                            this->pixels[fourthCorner - 1] = 0.0f;
-                            this->pixels[fourthCorner - 2] = 255.0f;
-                            this->pixels[fourthCorner - 3] = 0.0f;
-                            
-                            
+        
                             if(squares[sizeY].first == NULL)
+                            {
+                                std::vector<int> corners;
+                                corners.push_back(i);
+                                corners.push_back(currentY);
+                                corners.push_back(thirdCorner);
+                                corners.push_back(fourthCorner);  
+                                
                                 squares[sizeY] = make_pair(1, corners);
+                            }
                             else
-                                squares[sizeY].first++;
+                            {
+                               
+                              //  int found = 0;
+                              //  for(int corner = 0; corner < squares[sizeY].second.size(); corner++)
+                              //  {
+                              //      if(squares[sizeY].second[corner] == i || squares[sizeY].second[corner] == currentY || 
+                               //        squares[sizeY].second[corner] == thirdCorner || squares[sizeY].second[corner] == fourthCorner)
+                               //         found++;
+                              //  }
+                                
+                              //  if(found < 4)
+                              //  {
+                                    squares[sizeY].first++;
+                                    squares[sizeY].second.push_back(i);
+                                    squares[sizeY].second.push_back(currentY);
+                                    squares[sizeY].second.push_back(thirdCorner);
+                                    squares[sizeY].second.push_back(fourthCorner);
+                                    
+                              //  }
                             
+                            }
                             break;
                         }                    
                         looseDiffCount++;
@@ -910,7 +949,7 @@ void OCR::chessBoardDetection()
                 sizeY++;
             }
             
-       
+       */
        
         }
        
@@ -918,16 +957,17 @@ void OCR::chessBoardDetection()
     
      for ( auto it = squares.begin(); it != squares.end(); ++it )
      {
-         Log::getInstance().debug(it->second.first);
+         
         // Loose up a bit the constraint on the number of squares to search for, between 55 and 64
-        if(it->second.first > 50 && it->second.first < 70)
+        if(it->second.first > 50 && it->second.first < 150)
         {
            
             for(int sqI = 0; sqI < it->second.second.size(); sqI++)
             {
-               // this->pixels[ it->second.second[sqI] -1 ] = 0.0f;
-               // this->pixels[ it->second.second[sqI] -2 ] = 255.0f;
-               // this->pixels[ it->second.second[sqI] -3 ] = 0.0f;
+                Log::getInstance().debug(it->second.second[sqI]);
+                this->pixels[ it->second.second[sqI] -1 ] = 0.0f;
+                this->pixels[ it->second.second[sqI] -2 ] = 255.0f;
+                this->pixels[ it->second.second[sqI] -3 ] = 255.0f;
             }
         
         }
