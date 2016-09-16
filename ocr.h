@@ -36,7 +36,7 @@ private:
 
     void sort(std::vector<std::pair<int, double> > &v1);
     void merge(std::vector<std::pair<int, double> > &source, std::vector<std::pair<int, double> > &v1, std::vector<std::pair<int, double> > &v2);
-    void dilate();
+    void erosion(unsigned char *source, int kernelSize, std::vector<int**> erosionKernels);
 	
 	double calculateGaussianKernel(int x, int y, double sigma);
     

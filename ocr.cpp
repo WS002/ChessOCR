@@ -37,13 +37,67 @@ void OCR::cornerDetection()
  // Harris corner detection
  
  // optional: Gaussian blur the image
-    //this->blur();
+  //this->blur();
 
  // grayscale the image ( binarize = true?)
-    this->grayscale();
+    this->grayscale(1);
+
+    // EROSION
     
+        int kSize = 3;
+        // Allocate memory
+        std::vector<int**> erosionKernels;
+        int **erosionKernel1;
+        erosionKernel1 = (int**)malloc( kSize* sizeof(int*) ) ;
+        
+        for(int x = 0; x < kSize; x++)
+        {
+            erosionKernel1[x] = (int*)malloc( kSize*sizeof(int) ) ;
+            for(int y = 0; y < kSize; y++)
+            {            
+                erosionKernel1[x][y] = 0;
+            }
+        
+        }
+        erosionKernels.push_back(erosionKernel1);
+        
+        int **erosionKernel2;
+        erosionKernel2 = (int**)malloc( kSize* sizeof(int*) ) ;
+        
+        for(int x = 0; x < kSize; x++)
+        {
+            erosionKernel2[x] = (int*)malloc( kSize*sizeof(int) ) ;
+            for(int y = 0; y < kSize; y++)
+            {            
+                erosionKernel2[x][y] = 255;
+            }
+        
+        }
+        // End allocate memory
+        erosionKernels.push_back(erosionKernel2);
+            
+            
     
-    
+        
+        this->erosion(this->pixels, kSize, erosionKernels);
+        this->erosion(this->pixels, kSize, erosionKernels);
+        this->erosion(this->pixels, kSize, erosionKernels);
+        // Free memory
+        for(int i = 0; i < kSize; i++)
+            free(erosionKernel1[i]);
+        
+        free(erosionKernel1);
+        // End free memory
+        
+       // Free memory
+        for(int i = 0; i < kSize; i++)
+            free(erosionKernel2[i]);
+        
+        free(erosionKernel2);
+        // End free memory
+        
+    return;
+    //END EROSION
  // compute horizontal derivatives image
     char horizontalImagePath[] = "whateverHorizontal.bmp";
     this->computeHorizontalDerivatives();
@@ -190,9 +244,9 @@ void OCR::cornerDetection()
             {
                 for(int kY = 0; kY < kernelSize; ++kY)
                 {                     
-                    xDiff += ((double)this->horizontalDerivatives[kernel[kX][kY]] * (double)this->horizontalDerivatives[kernel[kX][kY]]); //* gaussian[kX][kY] );
-                    yDiff += ((double)this->verticalDerivatives[kernel[kX][kY]] * (double)this->verticalDerivatives[kernel[kX][kY]]); //* gaussian[kX][kY] );
-                    xyDiff +=((double)this->verticalDerivatives[kernel[kX][kY]] * (double)this->horizontalDerivatives[kernel[kX][kY]]); //* gaussian[kX][kY] );
+                    xDiff += ((double)this->horizontalDerivatives[kernel[kX][kY]] * (double)this->horizontalDerivatives[kernel[kX][kY]]);//* gaussian[kX][kY] );
+                    yDiff += ((double)this->verticalDerivatives[kernel[kX][kY]] * (double)this->verticalDerivatives[kernel[kX][kY]]);//* gaussian[kX][kY] );
+                    xyDiff +=((double)this->verticalDerivatives[kernel[kX][kY]] * (double)this->horizontalDerivatives[kernel[kX][kY]]);//* gaussian[kX][kY] );
                 }
             }
 
@@ -242,64 +296,227 @@ void OCR::cornerDetection()
     }
     
     this->displayEdges();
+    this->filterCorners(cornerThreshold);  
+    this->displayCorners();
     
-    //this->filterCorners(cornerThreshold);  
-   // this->dilate();
-    //this->displayCorners();
-   
+        
+  
+    
     
     Log::getInstance().debug(maxScore);
     
 }
 
-void OCR::dilate()
+// TODO Calibrate erosions, approximate polygon , extract it
+
+void OCR::erosion (unsigned char *source, int kernelSize, std::vector<int**> erosionKernels)
 {
+    int blackCounter = 0;
+    int whiteCounter = 0;
+    
+    std::vector<std::pair<int, float> > erosionCandidates; 
+    int movePositions = kernelSize / 2;
     for(int i = 3; i < this->size; i += 4)
-    {
-         //Ignore border pixels
-        if(!( i < this->width * 4) && !(i > this->size - (this->width * 4)) 
-        &&  !(i % (4*this->width) == 3) && !((i+1) % (4*this->width) == 0) )
+    {   
+  
+        //Ignore border pixels
+        if( !( i < this->width * 4 * movePositions) && !(i > this->size - (this->width * 4 * movePositions)) 
+        &&  !(i % (4*this->width) < 4 + (4 * (movePositions-1) ) ) && !( i % (4*this->width) >= (4*this->width - 1) - 4* (movePositions-1))  )
         {
-            int kernel[9];
+            std::vector<int> erosionFlags;
+            for(int i = erosionKernels.size() - 1; i >=0; --i)
+                erosionFlags.push_back(0);
+                
+            int current = i - 1;
             
-            kernel[0] = i - 1;
-            kernel[1] = i - 5;
-            kernel[2] = i + 5;
-            kernel[3] = i + (this->width * 4) - 1;
-            kernel[4] = kernel[3] - 4;
-            kernel[5] = kernel[3] + 4;
-            kernel[6] = i - (this->width * 4) - 1;
-            kernel[7] = kernel[6] - 4;
-            kernel[8] = kernel[6] + 4;
-            
-            // Get max value
-            int maxR = 0;
-            int maxB = 0;
-            int maxG = 0;
-            
-            for(int j = 0; j < 9; ++j)
+            if(this->pixels[current] == 0.0f)
+                blackCounter++;
+            else 
+                whiteCounter++;
+
+            for(int i = erosionKernels.size() - 1; i >=0; --i)
+                if(erosionKernels[i][movePositions][movePositions] != (int) source[current])
+                    erosionFlags[i] = 1;
+            // Top 
+            int topCounter = 1;
+            while(topCounter <= movePositions)
             {
-                if(this->pixels[kernel[j]] > maxB)
-                    maxB = this->pixels[kernel[j]];
+            
+                int top = current + (topCounter * this->width * 4);   
+                if(this->pixels[top] == 0.0f)
+                    blackCounter++;
+                else 
+                    whiteCounter++;
+                
+                for(int i = erosionKernels.size() - 1; i >=0; --i)
+                    if(erosionKernels[i][movePositions][movePositions+topCounter] != (int) source[top])
+                        erosionFlags[i] = 1; 
+				
+                int leftCounter = 1;
+                while(leftCounter <= movePositions) 
+                {
+                    int left = top - leftCounter * 4;
                     
-                if(this->pixels[kernel[j]] > maxG)
-                    maxG = this->pixels[kernel[j] - 1];
+                    if(this->pixels[left] == 0.0f)
+                        blackCounter++;
+                    else 
+                        whiteCounter++;
                     
-                if(this->pixels[kernel[j]] > maxR)
-                    maxR = this->pixels[kernel[j] - 2];
+                    for(int i = erosionKernels.size() - 1; i >=0; --i)
+                        if(erosionKernels[i][movePositions - leftCounter][movePositions+topCounter] != (int) source[left])
+                            erosionFlags[i] = 1;
+                    
+                    leftCounter++;
+                }
+                
+                int rightCounter = 1;
+                while(rightCounter <= movePositions) 
+                {
+                    int right = top + rightCounter * 4;
+                    
+                    if(this->pixels[right] == 0.0f)
+                        blackCounter++;
+                    else 
+                        whiteCounter++;
+                    
+                    for(int i = erosionKernels.size() - 1; i >=0; --i)
+                        if(erosionKernels[i][movePositions + rightCounter][movePositions+topCounter] != (int) source[right])
+                            erosionFlags[i] = 1;
+                        
+                    rightCounter++;
+                }
+                
+                topCounter++;
             }
             
-            //Set all pixels to max value
-            for(int j = 0; j < 9; ++j)
+            // Bottom
+            int bottomCounter = 1;
+            while(bottomCounter <= movePositions)
             {
-                this->pixels[kernel[j]] = maxB;
-                this->pixels[kernel[j]-1] = maxG;
-                this->pixels[kernel[j]-2] = maxR;
+            
+                int bottom = current - (bottomCounter * this->width * 4);
+                
+                if(this->pixels[bottom] == 0.0f)
+                    blackCounter++;
+                else 
+                    whiteCounter++;
+                
+                for(int i = erosionKernels.size() - 1; i >=0; --i)
+                    if(erosionKernels[i][movePositions][movePositions-bottomCounter] != (int) source[bottom])
+                        erosionFlags[i] = 1;
+ 
+				
+                int leftCounter = 1;
+                while(leftCounter <= movePositions) 
+                {
+                    int left = bottom - leftCounter * 4;
+                    
+                    if(this->pixels[left] == 0.0f)
+                        blackCounter++;
+                    else 
+                        whiteCounter++;
+                    
+                    for(int i = erosionKernels.size() - 1; i >=0; --i)
+                        if(erosionKernels[i][movePositions - leftCounter][movePositions-bottomCounter] != (int) source[left])
+                            erosionFlags[i] = 1;
+             
+					
+                    leftCounter++;
+                }
+                
+                int rightCounter = 1;
+                while(rightCounter <= movePositions) 
+                {
+                    int right = bottom + rightCounter * 4; 
+                    
+                    if(this->pixels[right] == 0.0f)
+                        blackCounter++;
+                    else 
+                        whiteCounter++;
+                    
+                    for(int i = erosionKernels.size() - 1; i >=0; --i)
+                        if(erosionKernels[i][movePositions + rightCounter][movePositions-bottomCounter] != (int) source[right])
+                            erosionFlags[i] = 1;
+                        
+					
+                    rightCounter++;
+                }
+                
+                bottomCounter++;
             }
+            
+            //Left
+            int leftCounter = 1;
+            while(leftCounter <= movePositions) 
+            {
+                int left = current - leftCounter * 4;
+                
+                if(this->pixels[left] == 0.0f)
+                    blackCounter++;
+                else 
+                    whiteCounter++;
+                
+                for(int i = erosionKernels.size() - 1; i >=0; --i)
+                    if(erosionKernels[i][movePositions - leftCounter][movePositions] != (int) source[left])
+                        erosionFlags[i] = 1;
+                    
+                leftCounter++;
+            }
+            
+            //Right
+            int rightCounter = 1;
+            while(rightCounter <= movePositions) 
+            {
+                int right = current + rightCounter * 4;
+                
+                if(this->pixels[right] == 0.0f)
+                    blackCounter++;
+                else 
+                    whiteCounter++;
+                
+                for(int i = erosionKernels.size() - 1; i >=0; --i)
+                    if(erosionKernels[i][movePositions + rightCounter][movePositions] != (int) source[right])
+                        erosionFlags[i] = 1;
+
+                 
+                rightCounter++;
+            }
+            
+            int erosionFlag = 1;
+            for(int eF = 0; eF < erosionFlags.size(); eF++)
+            {
+                if(erosionFlags[eF] == 0)
+                {
+                    erosionFlag = 0;
+                    break;
+                }
+            }
+            
+            if(erosionFlag > 0)
+            {
+                if(whiteCounter >= blackCounter)
+                    erosionCandidates.push_back(std::make_pair(current, 125.0f) );
+                else
+                    erosionCandidates.push_back(std::make_pair(current, 0.0f) );
+            }
+               
+            
             
         }
+        
+    }
+    
+    for(int kX = 0; kX < erosionCandidates.size(); ++kX)
+    {
+                          
+        source[erosionCandidates[kX].first    ] = (unsigned char) erosionCandidates[kX].second;
+        source[erosionCandidates[kX].first - 1] = (unsigned char) erosionCandidates[kX].second;
+        source[erosionCandidates[kX].first - 2] = (unsigned char) erosionCandidates[kX].second;
+            
+        
     }
 }
+
 
 void OCR::whitenImage()
 {
@@ -342,15 +559,15 @@ void OCR::filterCorners(int N)
 {  
   
     //Local maxima
-   this->filterLocalMaxima2(this->corners, 5);
+   this->filterLocalMaxima2(this->corners, 3);
  
    //Just to be safe....
   // if(N > this->corners.size())
     //    N = this->corners.size();
    
    //Global maxima
-  // this->sortCorners();    
-  // this->corners.erase(this->corners.begin(), this->corners.end() - N);
+   this->sortCorners();    
+   this->corners.erase(this->corners.begin(), this->corners.end() - N);
 
     
 }
@@ -477,7 +694,7 @@ void OCR::filterLocalMaxima2(std::vector<std::pair<int, double> > &source, int k
             {
                 for(int kY = 0; kY < kernelSize; ++kY)
                 {  
-                    if(this->pixelScores[ kernel[kX][kY] ] >= localMaxima)
+                    if(kernel[kX][kY] < this->size && this->pixelScores[ kernel[kX][kY] ] >= localMaxima)
                     {
                         localMaxima = this->pixelScores[ kernel[kX][kY] ];
                         maxIndices.push_back(kernel[kX][kY]);
@@ -739,7 +956,7 @@ void OCR::chessBoardDetection()
     //Implement Hough transform
     //this->houghTransform();
     // First int is the size of the square, the second is a pair with    the number of squares with this size found  and the edge indices of these squares
-    std::unordered_map<int, std::pair<int, std::vector<int> > > squares;
+  /*  std::unordered_map<int, std::pair<int, std::vector<int> > > squares;
     
     // Loose the constraints a bit.... 3 equally spaced neighbour corners should be enough to form a square.... extract 64 squares close to each other, based on size
     //Extract chessboard 
@@ -816,7 +1033,7 @@ void OCR::chessBoardDetection()
                             this->pixels[fourthCorner - 2] = 255.0f;
                             this->pixels[fourthCorner - 3] = 0.0f;
                             
-                           */ 
+                            
                             
                             if(squares[sizeX].first == NULL)
                             {
@@ -950,7 +1167,7 @@ void OCR::chessBoardDetection()
             }
             
        */
-       
+  /*     
         }
        
     }       
@@ -973,7 +1190,7 @@ void OCR::chessBoardDetection()
         }
         
      }
-
+*/
 }
 
 void OCR::houghTransform()
