@@ -21,6 +21,7 @@ private:
     std::vector<std::pair<int, double> > edges;
     double *pixelScores;
     int *pixelEdges;
+    int *pixelCorners;
     
     void whitenImage();
     void filterCorners(int N);
@@ -43,6 +44,9 @@ private:
     //If it is a square corner, return possible directions
 	std::pair<int, int> isASquareCorner(int i);
     
+    // 0 if the corner or its neighbourhood corners are already used for square detection 
+    int isUsedSquareCorner(int i, std::unordered_map<int, int>& usedCorners, int neighbourhoodSize);
+    
     void houghTransform();
 public:
     OCR():BmpImage()
@@ -51,6 +55,7 @@ public:
         verticalDerivatives = NULL;
         pixelScores = NULL;
         pixelEdges = NULL;
+        pixelCorners = NULL;
     };
     ~OCR();
     void cornerDetection();

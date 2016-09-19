@@ -25,6 +25,12 @@ OCR::~OCR()
         delete[] pixelEdges;
         this->pixelEdges = NULL;
     }
+    
+    if(NULL != this->pixelCorners)
+    {
+        delete[] pixelCorners;
+        this->pixelCorners = NULL;
+    }
 }
 
 double OCR::calculateGaussianKernel(int x, int y, double sigma)
@@ -40,13 +46,15 @@ void OCR::cornerDetection()
   //this->blur();
 
  // grayscale the image ( binarize = true?)
-    this->grayscale(1);
+    this->grayscale();
 
     // EROSION
     
         int kSize = 3;
         // Allocate memory
         std::vector<int**> erosionKernels;
+       
+        //square
         int **erosionKernel1;
         erosionKernel1 = (int**)malloc( kSize* sizeof(int*) ) ;
         
@@ -61,42 +69,18 @@ void OCR::cornerDetection()
         }
         erosionKernels.push_back(erosionKernel1);
         
-        int **erosionKernel2;
-        erosionKernel2 = (int**)malloc( kSize* sizeof(int*) ) ;
-        
-        for(int x = 0; x < kSize; x++)
-        {
-            erosionKernel2[x] = (int*)malloc( kSize*sizeof(int) ) ;
-            for(int y = 0; y < kSize; y++)
-            {            
-                erosionKernel2[x][y] = 255;
-            }
-        
-        }
-        // End allocate memory
-        erosionKernels.push_back(erosionKernel2);
-            
-            
-    
-        
+     
         this->erosion(this->pixels, kSize, erosionKernels);
-        this->erosion(this->pixels, kSize, erosionKernels);
-        this->erosion(this->pixels, kSize, erosionKernels);
+        
         // Free memory
         for(int i = 0; i < kSize; i++)
             free(erosionKernel1[i]);
         
         free(erosionKernel1);
         // End free memory
+            
         
-       // Free memory
-        for(int i = 0; i < kSize; i++)
-            free(erosionKernel2[i]);
         
-        free(erosionKernel2);
-        // End free memory
-        
-    return;
     //END EROSION
  // compute horizontal derivatives image
     char horizontalImagePath[] = "whateverHorizontal.bmp";
@@ -111,12 +95,13 @@ void OCR::cornerDetection()
     this->saveVerticalBMP(verticalImagePath);
     
     double maxScore = 0.0f;
-    int kernelSize = 1;
+    int kernelSize = 3;
     int movePositions = kernelSize / 2;
     
     this->pixelScores = new double[this->size];
     // If 0, no edge; if 1, edge
     this->pixelEdges = new int[this->size];
+    this->pixelCorners = new int[this->size];
     // populate with 0's
     for(int pE = 0; pE < this->size; pE++)
         this->pixelEdges[pE] = 0;
@@ -284,20 +269,25 @@ void OCR::cornerDetection()
     }
     
     
-    this->whitenImage();
+    //this->whitenImage();
     
     int cornerThreshold = this->corners.size()/5;
     int edgeThreshold = this->edges.size()/5;
     
-    this->filterEdges(edgeThreshold);
+    //this->filterEdges(edgeThreshold);
     for(int edge = 0; edge < this->edges.size(); edge++)
     {
         this->pixelEdges[this->edges[edge].first] = 1;
     }
     
-    this->displayEdges();
-    this->filterCorners(cornerThreshold);  
-    this->displayCorners();
+    for(int corner = 0; corner < this->corners.size(); corner++)
+    {
+        this->pixelCorners[this->corners[corner].first] = 1;
+    }
+    
+    //this->displayEdges();
+    //this->filterCorners(cornerThreshold);  
+   // this->displayCorners();
     
         
   
@@ -311,9 +301,6 @@ void OCR::cornerDetection()
 
 void OCR::erosion (unsigned char *source, int kernelSize, std::vector<int**> erosionKernels)
 {
-    int blackCounter = 0;
-    int whiteCounter = 0;
-    
     std::vector<std::pair<int, float> > erosionCandidates; 
     int movePositions = kernelSize / 2;
     for(int i = 3; i < this->size; i += 4)
@@ -329,10 +316,6 @@ void OCR::erosion (unsigned char *source, int kernelSize, std::vector<int**> ero
                 
             int current = i - 1;
             
-            if(this->pixels[current] == 0.0f)
-                blackCounter++;
-            else 
-                whiteCounter++;
 
             for(int i = erosionKernels.size() - 1; i >=0; --i)
                 if(erosionKernels[i][movePositions][movePositions] != (int) source[current])
@@ -343,10 +326,6 @@ void OCR::erosion (unsigned char *source, int kernelSize, std::vector<int**> ero
             {
             
                 int top = current + (topCounter * this->width * 4);   
-                if(this->pixels[top] == 0.0f)
-                    blackCounter++;
-                else 
-                    whiteCounter++;
                 
                 for(int i = erosionKernels.size() - 1; i >=0; --i)
                     if(erosionKernels[i][movePositions][movePositions+topCounter] != (int) source[top])
@@ -356,12 +335,7 @@ void OCR::erosion (unsigned char *source, int kernelSize, std::vector<int**> ero
                 while(leftCounter <= movePositions) 
                 {
                     int left = top - leftCounter * 4;
-                    
-                    if(this->pixels[left] == 0.0f)
-                        blackCounter++;
-                    else 
-                        whiteCounter++;
-                    
+              
                     for(int i = erosionKernels.size() - 1; i >=0; --i)
                         if(erosionKernels[i][movePositions - leftCounter][movePositions+topCounter] != (int) source[left])
                             erosionFlags[i] = 1;
@@ -373,11 +347,6 @@ void OCR::erosion (unsigned char *source, int kernelSize, std::vector<int**> ero
                 while(rightCounter <= movePositions) 
                 {
                     int right = top + rightCounter * 4;
-                    
-                    if(this->pixels[right] == 0.0f)
-                        blackCounter++;
-                    else 
-                        whiteCounter++;
                     
                     for(int i = erosionKernels.size() - 1; i >=0; --i)
                         if(erosionKernels[i][movePositions + rightCounter][movePositions+topCounter] != (int) source[right])
@@ -396,11 +365,6 @@ void OCR::erosion (unsigned char *source, int kernelSize, std::vector<int**> ero
             
                 int bottom = current - (bottomCounter * this->width * 4);
                 
-                if(this->pixels[bottom] == 0.0f)
-                    blackCounter++;
-                else 
-                    whiteCounter++;
-                
                 for(int i = erosionKernels.size() - 1; i >=0; --i)
                     if(erosionKernels[i][movePositions][movePositions-bottomCounter] != (int) source[bottom])
                         erosionFlags[i] = 1;
@@ -410,11 +374,6 @@ void OCR::erosion (unsigned char *source, int kernelSize, std::vector<int**> ero
                 while(leftCounter <= movePositions) 
                 {
                     int left = bottom - leftCounter * 4;
-                    
-                    if(this->pixels[left] == 0.0f)
-                        blackCounter++;
-                    else 
-                        whiteCounter++;
                     
                     for(int i = erosionKernels.size() - 1; i >=0; --i)
                         if(erosionKernels[i][movePositions - leftCounter][movePositions-bottomCounter] != (int) source[left])
@@ -428,11 +387,6 @@ void OCR::erosion (unsigned char *source, int kernelSize, std::vector<int**> ero
                 while(rightCounter <= movePositions) 
                 {
                     int right = bottom + rightCounter * 4; 
-                    
-                    if(this->pixels[right] == 0.0f)
-                        blackCounter++;
-                    else 
-                        whiteCounter++;
                     
                     for(int i = erosionKernels.size() - 1; i >=0; --i)
                         if(erosionKernels[i][movePositions + rightCounter][movePositions-bottomCounter] != (int) source[right])
@@ -451,11 +405,6 @@ void OCR::erosion (unsigned char *source, int kernelSize, std::vector<int**> ero
             {
                 int left = current - leftCounter * 4;
                 
-                if(this->pixels[left] == 0.0f)
-                    blackCounter++;
-                else 
-                    whiteCounter++;
-                
                 for(int i = erosionKernels.size() - 1; i >=0; --i)
                     if(erosionKernels[i][movePositions - leftCounter][movePositions] != (int) source[left])
                         erosionFlags[i] = 1;
@@ -468,11 +417,6 @@ void OCR::erosion (unsigned char *source, int kernelSize, std::vector<int**> ero
             while(rightCounter <= movePositions) 
             {
                 int right = current + rightCounter * 4;
-                
-                if(this->pixels[right] == 0.0f)
-                    blackCounter++;
-                else 
-                    whiteCounter++;
                 
                 for(int i = erosionKernels.size() - 1; i >=0; --i)
                     if(erosionKernels[i][movePositions + rightCounter][movePositions] != (int) source[right])
@@ -493,11 +437,8 @@ void OCR::erosion (unsigned char *source, int kernelSize, std::vector<int**> ero
             }
             
             if(erosionFlag > 0)
-            {
-                if(whiteCounter >= blackCounter)
-                    erosionCandidates.push_back(std::make_pair(current, 125.0f) );
-                else
-                    erosionCandidates.push_back(std::make_pair(current, 0.0f) );
+            {                       
+                erosionCandidates.push_back(std::make_pair(current, 255.0f) );
             }
                
             
@@ -926,27 +867,181 @@ void OCR::computeHorizontalDerivatives()
 */
 std::pair<int, int> OCR::isASquareCorner(int i)
 {
+
     //If out of bounds
     if( (i-4) > (this->size - 1) || (i+4) > (this->size - 1) || i - (this->width * 4) > (this->size - 1) || i + (this->width * 4) > (this->size - 1) )
         return std::make_pair(0, 0);
         
+        
+    //If not corner
+    if(this->pixelCorners[i] < 1)
+        return std::make_pair(0, 0);
+        
+    
+        
     //bottom left corner
-    if(pixelEdges[i] == 1 && pixelEdges[i-4] == 0 && pixelEdges[i - (this->width * 4)] == 0 && pixelEdges[i+4] == 1 && pixelEdges[i + (this->width * 4)] == 1)
+    if(this->pixels[i] == 1 && this->pixels[i-4] == 0 && this->pixels[i - (this->width * 4)] == 0 && this->pixels[i+4] == 1 && this->pixels[i + (this->width * 4)] == 1)
         return std::make_pair(1, 1);
     
     //top left corner
-    if( pixelEdges[i  -(this->width*4) ] == 1 && pixelEdges[i  +(this->width*4) ] == 0 && pixelEdges[i - 4 ] == 0 &&  pixelEdges[i + 4 ] == 1)
+    if( this->pixels[i  -(this->width*4) ] == 1 && this->pixels[i  +(this->width*4) ] == 0 && this->pixels[i - 4 ] == 0 &&  this->pixels[i + 4 ] == 1)
         return std::make_pair(1, -1);
         
     //top right corner
-    if( pixelEdges[i  -(this->width*4) ] == 1 && pixelEdges[i  +(this->width*4) ] == 0 && pixelEdges[i - 4 ] == 1 &&  pixelEdges[i + 4 ] == 0)
+    if( this->pixels[i  -(this->width*4) ] == 1 && this->pixels[i  +(this->width*4) ] == 0 && this->pixels[i - 4 ] == 1 &&  this->pixels[i + 4 ] == 0)
         return std::make_pair(-1, -1);
         
     //bottom right corner
-    if( pixelEdges[i  -(this->width*4) ] == 0 && pixelEdges[i  +(this->width*4) ] == 1 && pixelEdges[i - 4 ] == 1 &&  pixelEdges[i + 4 ] == 0)
+    if( this->pixels[i  -(this->width*4) ] == 0 && this->pixels[i  +(this->width*4) ] == 1 && this->pixels[i - 4 ] == 1 &&  this->pixels[i + 4 ] == 0)
         return std::make_pair(-1, -1);
         
     return std::make_pair(0, 0);
+}
+
+int OCR::isUsedSquareCorner(int i, std::unordered_map<int, int>& usedCorners, int neighbourhoodSize)
+{
+    int usedCorner = 0;
+    int movePositions = neighbourhoodSize / 2;
+   
+   
+     //Ignore border pixels
+      if( !( i < this->width * 4 * movePositions) && !(i > this->size - (this->width * 4 * movePositions)) 
+        &&  !(i % (4*this->width) < 4 + (4 * (movePositions-1) ) ) && !( i % (4*this->width) >= (4*this->width - 1) - 4* (movePositions-1))  )
+        {
+                                
+            // Current
+            int current = i - 1;
+                                                       
+            if(usedCorners[current] > 0) 
+            {
+                usedCorner = 1;
+                return usedCorner;
+            }
+                
+            
+            // Top 
+            int topCounter = 1;
+            while(topCounter <= movePositions)
+            {
+            
+                int top = current + (topCounter * this->width * 4);     
+           
+                if(usedCorners[top] > 0) 
+                {
+                    usedCorner = 1;
+                    return usedCorner;
+                }
+				
+                int leftCounter = 1;
+                while(leftCounter <= movePositions) 
+                {
+                    int left = top - leftCounter * 4;
+                    
+                               
+                    if(usedCorners[left] > 0) 
+                    {
+                        usedCorner = 1;
+                        return usedCorner;
+                    }
+	
+                   
+                    leftCounter++;
+                }
+                
+                int rightCounter = 1;
+                while(rightCounter <= movePositions) 
+                {
+                    int right = top + rightCounter * 4;    
+                                    
+                    if(usedCorners[right] > 0) 
+                    {
+                        usedCorner = 1;
+                        return usedCorner;
+                    }
+                    
+                    rightCounter++;
+                }
+                
+                topCounter++;
+            }
+            
+            // Bottom
+            int bottomCounter = 1;
+            while(bottomCounter <= movePositions)
+            {
+            
+                int bottom = current - (bottomCounter * this->width * 4);
+                if(usedCorners[bottom] > 0) 
+                {
+                    usedCorner = 1;
+                    return usedCorner;
+                }
+				
+                int leftCounter = 1;
+                while(leftCounter <= movePositions) 
+                {
+                    int left = bottom - leftCounter * 4;  
+             
+                    if(usedCorners[left] > 0) 
+                    {
+                        usedCorner = 1;
+                        return usedCorner;
+                    }
+					
+                    leftCounter++;
+                }
+                
+                int rightCounter = 1;
+                while(rightCounter <= movePositions) 
+                {
+                    int right = bottom + rightCounter * 4;    
+
+                    if(usedCorners[right] > 0) 
+                    {
+                        usedCorner = 1;
+                        return usedCorner;
+                    }
+					
+                    rightCounter++;
+                }
+                
+                bottomCounter++;
+            }
+            
+            //Left
+            int leftCounter = 1;
+            while(leftCounter <= movePositions) 
+            {
+                int left = current - leftCounter * 4;
+                
+                if(usedCorners[left] > 0) 
+                {
+                    usedCorner = 1;
+                    return usedCorner;
+                }
+                
+                leftCounter++;
+            }
+            
+            //Right
+            int rightCounter = 1;
+            while(rightCounter <= movePositions) 
+            {
+                int right = current + rightCounter * 4;
+                 
+                if(usedCorners[right] > 0) 
+                {
+                    usedCorner = 1;
+                    return usedCorner;
+                }
+                
+                rightCounter++;
+            }
+   
+        }
+        
+        // if 0, not used, else used
+       return usedCorner;
 }
 
 void OCR::chessBoardDetection()
@@ -956,8 +1051,13 @@ void OCR::chessBoardDetection()
     //Implement Hough transform
     //this->houghTransform();
     // First int is the size of the square, the second is a pair with    the number of squares with this size found  and the edge indices of these squares
-  /*  std::unordered_map<int, std::pair<int, std::vector<int> > > squares;
+    //std::unordered_map<int, std::pair<int, std::vector<int> > > squares;
+    std::unordered_map<int, int> usedCorners;
     
+    for(int i = 3; i < this->size; i+=4)
+    {
+        usedCorners[i] = 0;
+    }
     // Loose the constraints a bit.... 3 equally spaced neighbour corners should be enough to form a square.... extract 64 squares close to each other, based on size
     //Extract chessboard 
     for(int i = 3; i < this->size; i+=4)
@@ -968,216 +1068,103 @@ void OCR::chessBoardDetection()
         {
     
             std::pair<int,int> squareCornerDirections;
-            squareCornerDirections = isASquareCorner(i);
-            if(squareCornerDirections.first != 1 && squareCornerDirections.second != 1)
-                continue;
+            squareCornerDirections = isASquareCorner(i);           
             
-            int xDirection = (4 * squareCornerDirections.first);
-            int yDirection = (this->width*4 * squareCornerDirections.second);
+            if(squareCornerDirections.first != 0 && squareCornerDirections.second != 0 && isUsedSquareCorner(i, usedCorners, 5) == 0) 
+            {
+                // We found an unused square corner 
+                int xDirection = (4 * squareCornerDirections.first);
+                int yDirection = (this->width*4 * squareCornerDirections.second);
+                
+                // 1 for x, 0 for y. Try going x first
+                int xYDirection = 1;
+                
+                int squareSize = 1;
+                int iterations = 0;
+                
+                
+                
+                 // Determine direction
+                int direction = xDirection * xYDirection + (1- xYDirection) * yDirection;
+                 // Check the x and y direction for possible square corners
+                int current = i + direction;
+                
+                int square[4];
+                square[0] = i;
+                
+                while(this->pixelEdges[current] == 1 && this->pixels[current - 1] == 255 )
+                {          
+                    
+                   
+                    
+                   if(isASquareCorner(current).first != 0 && isASquareCorner(current).second != 0 && isUsedSquareCorner(current, usedCorners, 5) == 0)
+                   {       
+                     //Found another corner
+                    iterations++;
+                    
+                    // More than 4 sides, break 
+                    if(iterations > 4)
+                        break;
+                    
+                    
+                    //If the found rectangle corner is not a square, break
+                    if(iterations > 0 && current + (squareSize * direction) > this->size && square[iterations-1] != current + (squareSize * direction) )
+                        break;
+                    
+                    if(iterations == 4 && current == i)
+                    {
+                        // We found our square                        
+                        
+                        //Insert into squares and usedCorners
+                        for(int sqCorner = 0; sqCorner < 4; sqCorner++)
+                        {
+                            usedCorners[square[sqCorner]] = 1;
+                            
+                            this->pixels[ square[sqCorner] -1 ] = 0.0f;
+                            this->pixels[ square[sqCorner] -2 ] = 255.0f;
+                            this->pixels[ square[sqCorner] -3 ] = 0.0f;
+                            
+                        }
+                        
+                        usedCorners[i] = 1;
+                        xYDirection = 1;
+                        
+                        iterations = 0;
+                        
+                        break;
+                    }else{
+                        //We found a candidate corner of a square
+                        square[iterations] = current;
+                        xYDirection = 1 - xYDirection;
+                        
+                      // We found an unused square corner 
+                        int xDirection = (4 * isASquareCorner(current).first);
+                        int yDirection = (this->width*4 * isASquareCorner(current).first);
+                
+                        direction = xDirection * xYDirection + (1- xYDirection) * yDirection;
+                    }
+                    
+                   }
+                   
+                   if(iterations == 0)
+                    squareSize++;
+                    
+                   current += direction;
+                }
+                
+    
+            }
             
            
-            
-            // Check the x and y direction for possible square corners
-            int currentX = i + xDirection;
-            int sizeX = 1;
-            while(currentX < this->size && pixelEdges[currentX] == 1)
-            {
-                                                  
-                std::pair<int,int> xCornerDirections;
-                xCornerDirections = isASquareCorner(currentX);
-                if(xCornerDirections.first != 0 && sizeX > 8)
-                {
-                    //Found another corner
-                                                 
-                    int currentYDir = this->width*4 * xCornerDirections.second; 
-                    int currentY = currentX + currentYDir;
-                    while(currentY < this->size && pixelEdges[currentY] == 1)
-                    {
-                        currentY += currentYDir;
-                    }
-                    currentY -= currentYDir;
-                     
-                    // + - looseDifference
-                    int looseDifference = 5;
-                    int looseDiffCount = -looseDifference;
-                    while(looseDiffCount <= looseDifference)
-                    {
-                         //Loose up a bit on the perfect square size constraint
-                        if( currentY + looseDiffCount*currentYDir < this->size && isASquareCorner( currentY + looseDiffCount*currentYDir ).first != 0)
-                        {
-                            //Found third corner in the y direction => According to the loosened up constraints, this is a square => Found a square of size +- sizeX
-
-                           
-                          
-                            int thirdCorner = currentY + looseDiffCount*currentYDir;                            
-                            int fourthCorner = ( thirdCorner + (sizeX * isASquareCorner(thirdCorner).first * 4) ) + looseDiffCount*isASquareCorner(thirdCorner).first*4;
-                            if(fourthCorner > this->size)
-                                break;
-                                
-                         
-                            
-                            
-                            /*this->pixels[i - 1] = 0.0f;
-                            this->pixels[i - 2] = 255.0f;
-                            this->pixels[i - 3] = 0.0f;
-                            
-                            this->pixels[currentX - 1] = 0.0f;
-                            this->pixels[currentX - 2] = 255.0f;
-                            this->pixels[currentX - 3] = 0.0f;
-                            
-                            this->pixels[thirdCorner - 1] = 0.0f;
-                            this->pixels[thirdCorner - 2] = 255.0f;
-                            this->pixels[thirdCorner - 3] = 0.0f;    
-                            
-                            this->pixels[fourthCorner - 1] = 0.0f;
-                            this->pixels[fourthCorner - 2] = 255.0f;
-                            this->pixels[fourthCorner - 3] = 0.0f;
-                            
-                            
-                            
-                            if(squares[sizeX].first == NULL)
-                            {
-                                std::vector<int> corners;
-                                corners.push_back(i);
-                                corners.push_back(currentX);
-                                corners.push_back(thirdCorner);
-                                corners.push_back(fourthCorner);                           
-                            
-                                squares[sizeX] = make_pair(1, corners);
-                                
-                            }
-                            else
-                            {
-                               
-                               // int found = 0;
-                              //  for(int corner = 0; corner < squares[sizeX].second.size(); corner++)
-                              //  {
-                                  //  if(squares[sizeX].second[corner] == i || squares[sizeX].second[corner] == currentX || 
-                                   //    squares[sizeX].second[corner] == thirdCorner || squares[sizeX].second[corner] == fourthCorner)
-                                   //     found++;
-                             //   }
-                                
-                               // if(found < 4) 
-                              // {
-                                     squares[sizeX].first++;
-                                     squares[sizeX].second.push_back(i);
-                                     squares[sizeX].second.push_back(currentX);
-                                     squares[sizeX].second.push_back(thirdCorner);
-                                     squares[sizeX].second.push_back(fourthCorner);
-                             //   }
-                            }
-                            break;
-                        }                    
-                        looseDiffCount++;
-                    }
-                   
-                
-                }
-                
-                currentX += xDirection;
-                sizeX++;
-            }
-            
-            
-         /*   // Search in vertical direction
-            int sizeY = 1;
-            int currentY = i + yDirection;
-            while( currentY < this->size && pixelEdges[currentY] == 1)
-            {
-            
-                std::pair<int,int> yCornerDirections;
-                yCornerDirections = isASquareCorner(currentY);
-                if(yCornerDirections.first != 0)
-                {
-                    //Found another corner
-                    
-                    int currentXDir = 4 * yCornerDirections.first; 
-                    int currentX = currentY + currentXDir;
-                    while(currentX < this->size && pixelEdges[currentX] == 1)
-                    {
-                        currentX += currentXDir;
-                    }
-                    currentX -= currentXDir;
-                    
-                    
-                    // + - looseDifference
-                    int looseDifference = 5;
-                    int looseDiffCount = -looseDifference;
-                    while(looseDiffCount <= looseDifference)
-                    {
-                    
-                       
-                         //Loose up a bit on the perfect square size constraint
-                        if( currentX + currentXDir*looseDiffCount < this->size && isASquareCorner( currentX + currentXDir*looseDiffCount ).first != 0)
-                        {
-                            //Found third corner in the y direction => According to the loosened up constraints, this is a square => Found a square of size +- sizeX                           
-                           
-                           
-                            
-                            int thirdCorner = currentX + currentXDir*looseDiffCount;
-                            int fourthCorner = (thirdCorner + (sizeY * isASquareCorner(thirdCorner).second*4*this->width) ) + isASquareCorner(thirdCorner).second*4*this->width*looseDiffCount;
-                            if(fourthCorner > this->size)
-                                break;
-                                
-        
-                            if(squares[sizeY].first == NULL)
-                            {
-                                std::vector<int> corners;
-                                corners.push_back(i);
-                                corners.push_back(currentY);
-                                corners.push_back(thirdCorner);
-                                corners.push_back(fourthCorner);  
-                                
-                                squares[sizeY] = make_pair(1, corners);
-                            }
-                            else
-                            {
-                               
-                              //  int found = 0;
-                              //  for(int corner = 0; corner < squares[sizeY].second.size(); corner++)
-                              //  {
-                              //      if(squares[sizeY].second[corner] == i || squares[sizeY].second[corner] == currentY || 
-                               //        squares[sizeY].second[corner] == thirdCorner || squares[sizeY].second[corner] == fourthCorner)
-                               //         found++;
-                              //  }
-                                
-                              //  if(found < 4)
-                              //  {
-                                    squares[sizeY].first++;
-                                    squares[sizeY].second.push_back(i);
-                                    squares[sizeY].second.push_back(currentY);
-                                    squares[sizeY].second.push_back(thirdCorner);
-                                    squares[sizeY].second.push_back(fourthCorner);
-                                    
-                              //  }
-                            
-                            }
-                            break;
-                        }                    
-                        looseDiffCount++;
-                    }
-                   
-                
-                }
-            
-            
-            
-                currentY += yDirection;
-                sizeY++;
-            }
-            
-       */
-  /*     
         }
        
     }       
     
-     for ( auto it = squares.begin(); it != squares.end(); ++it )
+    /*
+     for ( auto it = usedCorners.begin(); it != usedCorners.end(); ++it )
      {
          
-        // Loose up a bit the constraint on the number of squares to search for, between 55 and 64
-        if(it->second.first > 50 && it->second.first < 150)
-        {
+       
            
             for(int sqI = 0; sqI < it->second.second.size(); sqI++)
             {
@@ -1187,7 +1174,7 @@ void OCR::chessBoardDetection()
                 this->pixels[ it->second.second[sqI] -3 ] = 255.0f;
             }
         
-        }
+        
         
      }
 */
